@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --primary-red: #D71920;
+    --dark-red: #A50F15;
+    --light-red: #FDE8E9;
+    --black: #171717;
+    --dark-gray: #333333;
+    --light-gray: #F5F5F5;
+    --border: #E5E5E5;
+  }
+
+  body {
+    direction: rtl;
+    text-align: right;
+    font-family: 'Cairo', sans-serif;
+    color: #171717;
+    background-color: #F8F9FA;
+    overflow-x: hidden;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #F1F1F1;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #D71920;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #A50F15;
+  }
+}
+
+/* Glassmorphism & UI helpers */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.red-gradient {
+  background: linear-gradient(135deg, #D71920 0%, #A50F15 100%);
+}
+
+.badge-pulse {
+  animation: pulse-badge 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse-badge {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: .85;
+    transform: scale(1.05);
+  }
+}
+
+/* Smooth transition defaults */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+

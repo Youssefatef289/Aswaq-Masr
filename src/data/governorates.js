@@ -1,0 +1,27 @@
+export const egyptianGovernorates = [
+  { id: 'cairo', name: 'القاهرة', shippingCost: 30, estimatedDays: 'خلال 24 ساعة' },
+  { id: 'giza', name: 'الجيزة', shippingCost: 30, estimatedDays: 'خلال 24 ساعة' },
+  { id: 'alexandria', name: 'الإسكندرية', shippingCost: 40, estimatedDays: '1 - 2 يوم' },
+  { id: 'qalyubia', name: 'القليوبية', shippingCost: 35, estimatedDays: '1 - 2 يوم' },
+  { id: 'sharqia', name: 'الشرقية', shippingCost: 45, estimatedDays: '2 - 3 أيام' },
+  { id: 'dakahlia', name: 'الدقهلية (المنصورة)', shippingCost: 45, estimatedDays: '2 - 3 أيام' },
+  { id: 'beheira', name: 'البحيرة', shippingCost: 45, estimatedDays: '2 - 3 أيام' },
+  { id: 'kafr-el-sheikh', name: 'كفر الشيخ', shippingCost: 50, estimatedDays: '2 - 3 أيام' },
+  { id: 'gharbia', name: 'الغربية (طنطا)', shippingCost: 40, estimatedDays: '1 - 2 يوم' },
+  { id: 'monufia', name: 'المنوفية', shippingCost: 40, estimatedDays: '1 - 2 يوم' },
+  { id: 'damietta', name: 'دمياط', shippingCost: 50, estimatedDays: '2 - 3 أيام' },
+  { id: 'port-said', name: 'بورسعيد', shippingCost: 45, estimatedDays: '2 - 3 أيام' },
+  { id: 'ismailia', name: 'الإسماعيلية', shippingCost: 45, estimatedDays: '2 - 3 أيام' },
+  { id: 'suez', name: 'السويس', shippingCost: 45, estimatedDays: '2 - 3 أيام' },
+  { id: 'fayoum', name: 'الفيوم', shippingCost: 50, estimatedDays: '2 - 3 أيام' },
+  { id: 'beni-suef', name: 'بني سويف', shippingCost: 50, estimatedDays: '2 - 3 أيام' },
+  { id: 'minya', name: 'المنيا', shippingCost: 60, estimatedDays: '3 - 4 أيام' },
+  { id: 'assiut', name: 'أسيوط', shippingCost: 60, estimatedDays: '3 - 4 أيام' },
+  { id: 'sohag', name: 'سوهاج', shippingCost: 65, estimatedDays: '3 - 4 أيام' },
+  { id: 'qena', name: 'قنا', shippingCost: 70, estimatedDays: '3 - 4 أيام' },
+  { id: 'luxor', name: 'الأقصر', shippingCost: 75, estimatedDays: '3 - 5 أيام' },
+  { id: 'aswan', name: 'أسوان', shippingCost: 80, estimatedDays: '3 - 5 أيام' },
+  { id: 'red-sea', name: 'البحر الأحمر (الغردقة)', shippingCost: 80, estimatedDays: '3 - 5 أيام' },
+  { id: 'matrouh', name: 'مطروح والساحل الشمالي', shippingCost: 70, estimatedDays: '3 - 4 أيام' }
+];
+
