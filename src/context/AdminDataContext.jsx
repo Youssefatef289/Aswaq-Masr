@@ -103,23 +103,18 @@ export const AdminDataProvider = ({ children }) => {
   // Supabase Initial Sync on mount if configured
   useEffect(() => {
     if (isSupabaseConfigured) {
-      // Sync products
       supabaseService.getProducts().then((remoteProducts) => {
         if (remoteProducts && remoteProducts.length > 0) setProducts(remoteProducts);
       });
-      // Sync categories
       supabaseService.getCategories().then((remoteCategories) => {
         if (remoteCategories && remoteCategories.length > 0) setCategories(remoteCategories);
       });
-      // Sync brands
       supabaseService.getBrands().then((remoteBrands) => {
         if (remoteBrands && remoteBrands.length > 0) setBrands(remoteBrands);
       });
-      // Sync orders
       supabaseService.getOrders().then((remoteOrders) => {
         if (remoteOrders && remoteOrders.length > 0) setOrders(remoteOrders);
       });
-      // Sync settings
       supabaseService.getSettings().then((remoteSettings) => {
         if (remoteSettings) setSettings(prev => ({ ...prev, ...remoteSettings }));
       });

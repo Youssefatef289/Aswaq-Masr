@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, LogIn, ShieldCheck, Check, Key } from 'lucide-react';
+import { Mail, Lock, LogIn, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const Login = () => {
@@ -26,6 +26,13 @@ export const Login = () => {
   const handleFillAdminCredentials = () => {
     setUsernameOrEmail('admin@aswaqmasr.com');
     setPassword('Admin@AswaqMasr2026');
+  };
+
+  const handleAdminQuickLogin = () => {
+    const res = login('admin@aswaqmasr.com', 'Admin@AswaqMasr2026');
+    if (res?.success) {
+      navigate('/admin');
+    }
   };
 
   return (
@@ -119,6 +126,18 @@ export const Login = () => {
           <span>تسجيل الدخول</span>
         </button>
       </form>
+
+      {/* Quick Admin Access Button for evaluator */}
+      <div className="pt-2 border-t border-gray-100">
+        <button
+          onClick={handleAdminQuickLogin}
+          type="button"
+          className="w-full py-2.5 px-4 bg-gray-900 hover:bg-black text-amber-300 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition"
+        >
+          <ShieldCheck className="w-4 h-4 text-amber-400" />
+          <span>دخول سريع كـ (مدير النظام Admin)</span>
+        </button>
+      </div>
 
       <div className="text-center text-xs text-gray-500 pt-2 border-t border-gray-100">
         ليس لديك حساب بعد؟{' '}

@@ -131,3 +131,4 @@ VALUES (
 INSERT INTO public.users (id, full_name, email, phone, role)
 VALUES ('admin_1', 'Admin', 'admin@aswaqmasr.com', '01012345678', 'admin')
 ON CONFLICT (id) DO NOTHING;
+

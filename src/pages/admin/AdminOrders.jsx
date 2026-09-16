@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { 
   ShoppingBag, Search, Filter, Eye, CheckCircle2, 
-  Clock, Truck, Package, XCircle, ChevronDown, MapPin, Phone, User 
+  Clock, Truck, Package, XCircle, ChevronDown, MapPin, Phone, User, 
+  Printer, Download, FileSpreadsheet 
 } from 'lucide-react';
 import { useAdminData } from '../../context/AdminDataContext';
 import { formatPrice, formatDate } from '../../utils/formatters';
@@ -54,6 +55,33 @@ export const AdminOrders = () => {
     }
   };
 
+  const handlePrintInvoice = () => {
+    window.print();
+  };
+
+  const handleExportCSV = () => {
+    const headers = ['رقم الطلب', 'اسم العميل', 'رقم الهاتف', 'المركز/المدينة', 'العنوان', 'المبلغ الإجمالي', 'الحالة', 'التاريخ'];
+    const rows = filteredOrders.map(o => [
+      o.id,
+      `"${o.customerName}"`,
+      `"${o.phone}"`,
+      `"${o.city || ''}"`,
+      `"${o.address || ''}"`,
+      o.total,
+      o.statusLabel || o.status,
+      o.date
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `Aswaaq_Masr_Orders_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -62,9 +90,17 @@ export const AdminOrders = () => {
             إدارة الطلبات والمبيعات ({orders.length})
           </h1>
           <p className="text-xs text-gray-500 mt-1">
-            متابعة حالة شحن الطلبات وتحديثها ومراجعة فواتير وبيانات العملاء
+            متابعة حالة شحن الطلبات وتحديثها ومراجعة فواتير وبيانات العملاء في بني سويف
           </p>
         </div>
+
+        <button
+          onClick={handleExportCSV}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
+        >
+          <FileSpreadsheet className="w-4 h-4" />
+          <span>تصدير الطلبات (CSV)</span>
+        </button>
       </div>
 
       {/* Filter Bar */}
@@ -102,7 +138,7 @@ export const AdminOrders = () => {
               <tr className="bg-gray-50 text-gray-500 border-b border-gray-200">
                 <th className="p-4 font-bold">رقم الطلب</th>
                 <th className="p-4 font-bold">العميل والهاتف</th>
-                <th className="p-4 font-bold">المحافظة والمدينة</th>
+                <th className="p-4 font-bold">المركز والمدينة</th>
                 <th className="p-4 font-bold">الأصناف</th>
                 <th className="p-4 font-bold">طريقة الدفع</th>
                 <th className="p-4 font-bold">المبلغ الكلي</th>
@@ -126,8 +162,8 @@ export const AdminOrders = () => {
                   </td>
 
                   <td className="p-4 text-gray-600">
-                    <span className="font-semibold block">{ord.governorate}</span>
-                    <span className="text-[11px] text-gray-400">{ord.city}</span>
+                    <span className="font-semibold block">{ord.city || 'بني سويف'}</span>
+                    <span className="text-[11px] text-gray-400 truncate max-w-[120px] block">{ord.address}</span>
                   </td>
 
                   <td className="p-4">
@@ -178,7 +214,7 @@ export const AdminOrders = () => {
       {/* Order Details Modal */}
       {selectedOrderDetails && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-xl w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto print:max-w-none print:shadow-none">
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
               <div>
                 <h2 className="text-base font-black text-gray-900">
@@ -188,12 +224,22 @@ export const AdminOrders = () => {
                   تاريخ الطلب: {formatDate(selectedOrderDetails.date)}
                 </span>
               </div>
-              <button
-                onClick={() => setSelectedOrderDetails(null)}
-                className="text-gray-400 hover:text-gray-600 p-1"
-              >
-                ✕
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handlePrintInvoice}
+                  className="flex items-center gap-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-xl font-bold transition"
+                  title="طباعة الفاتورة"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>طباعة</span>
+                </button>
+                <button
+                  onClick={() => setSelectedOrderDetails(null)}
+                  className="text-gray-400 hover:text-gray-600 p-1"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
 
             <div className="space-y-4 text-xs">
@@ -201,16 +247,17 @@ export const AdminOrders = () => {
               <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-1.5">
                 <p><strong>العميل:</strong> {selectedOrderDetails.customerName}</p>
                 <p><strong>رقم الهاتف:</strong> {selectedOrderDetails.phone}</p>
-                <p><strong>العنوان الكامل:</strong> {selectedOrderDetails.governorate}، {selectedOrderDetails.city} - {selectedOrderDetails.address}</p>
+                <p><strong>المنطقة والعنوان:</strong> {selectedOrderDetails.city} - {selectedOrderDetails.address}</p>
                 {selectedOrderDetails.notes && (
                   <p><strong>ملاحظات:</strong> {selectedOrderDetails.notes}</p>
                 )}
                 <p><strong>طريقة الدفع:</strong> {selectedOrderDetails.paymentMethod}</p>
+                <p><strong>حالة الطلب:</strong> {selectedOrderDetails.statusLabel || selectedOrderDetails.status}</p>
               </div>
 
               {/* Items List */}
               <div>
-                <h4 className="font-bold text-gray-800 mb-2">الأصناف المشتراة:</h4>
+                <h4 className="font-bold text-gray-800 mb-2">الأصناف المطلوبة:</h4>
                 <div className="divide-y divide-gray-100 border border-gray-200 rounded-2xl overflow-hidden">
                   {selectedOrderDetails.items?.map((item, i) => (
                     <div key={i} className="p-3 flex items-center justify-between">
@@ -234,7 +281,7 @@ export const AdminOrders = () => {
                 </div>
                 {selectedOrderDetails.shippingCost !== undefined && (
                   <div className="flex justify-between">
-                    <span>مصاريف الشحن:</span>
+                    <span>مصاريف التوصيل:</span>
                     <span>{formatPrice(selectedOrderDetails.shippingCost)}</span>
                   </div>
                 )}
@@ -250,4 +297,3 @@ export const AdminOrders = () => {
     </div>
   );
 };
-

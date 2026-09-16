@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
-  ShieldCheck, Truck, CreditCard, Banknote, 
-  MapPin, Phone, User, FileText, CheckCircle2, 
-  AlertCircle, Lock, ArrowLeft, MessageCircle 
+  Banknote, 
+  MapPin, 
+  CheckCircle2, 
+  Lock, 
+  MessageCircle 
 } from 'lucide-react';
 import { Breadcrumbs } from '../components/common/Breadcrumbs';
 import { useCart } from '../context/CartContext';
@@ -97,6 +99,7 @@ export const Checkout = () => {
       }))
     });
 
+    // Clear cart and go to confirmation
     clearCart();
     setIsSubmitting(false);
     navigate('/order-success', { state: { order: newOrder } });
@@ -167,16 +170,14 @@ ${itemsText}
             <span>إتمام الطلب والشحن (محافظة بني سويف)</span>
           </h1>
           <span className="text-xs text-emerald-600 font-bold block mt-1">
-            ✓ التوصيل فوري خلال ساعات لجميع مراكز وقرى بني سويف
+            ✓ التوصيل فوري لجميع مراكز وقرى بني سويف
           </span>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        
         {/* Checkout Form (7 cols) */}
         <div className="lg:col-span-7 space-y-6">
-          
           {/* 1. Customer & Shipping Info */}
           <div className="bg-white rounded-3xl border border-gray-200 p-6 shadow-sm space-y-4">
             <h2 className="text-base font-black text-gray-900 flex items-center gap-2 border-b border-gray-100 pb-3">
@@ -254,7 +255,7 @@ ${itemsText}
               {/* Detailed Address */}
               <div className="sm:col-span-2">
                 <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                  العنوان بالتفصيل (اسم الشارع، رقم العمارة، رقم الشقة أو علامة مميزة) <span className="text-red-500">*</span>
+                  العنوان بالتفصيل (اسم الشارع، رقم العمارة أو علامة مميزة) <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   name="address"
@@ -441,6 +442,10 @@ ${itemsText}
                 <span>{isSubmitting ? 'جاري التأكيد...' : 'تأكيد الطلب (الدفع عند الاستلام)'}</span>
               </button>
             </div>
+
+            <p className="text-[11px] text-center text-gray-400 leading-relaxed">
+              بالضغط على تأكيد الطلب، فإنك توافق على شروط وسياسة الاستخدام في أسواق مصر.
+            </p>
           </div>
         </div>
       </div>

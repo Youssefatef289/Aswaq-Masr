@@ -2,12 +2,12 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { 
   PhoneCall, Mail, MapPin, ShieldCheck, Truck, RotateCcw, 
-  CreditCard, MessageCircle, Heart, ArrowUp, Facebook, Instagram 
+  CreditCard, MessageCircle, ArrowUp 
 } from 'lucide-react';
 import { useAdminData } from '../../context/AdminDataContext';
 
 export const Footer = () => {
-  const { categories, brands, settings } = useAdminData();
+  const { settings } = useAdminData();
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -64,7 +64,6 @@ export const Footer = () => {
 
       {/* Centered Brand & Contact Section */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12 text-center space-y-6">
-        
         {/* 1. Centered Logo */}
         <div className="flex items-center justify-center gap-3">
           <div className="w-12 h-12 bg-brand-red rounded-2xl flex items-center justify-center text-white font-black text-2xl shadow-xl">

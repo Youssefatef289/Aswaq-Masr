@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Search, Phone, ShoppingBag, DollarSign, Calendar } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { formatPrice } from '../../utils/formatters';
 
 const initialCustomers = [
@@ -18,6 +18,7 @@ export const AdminCustomers = () => {
     (c) =>
       c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.phone.includes(searchTerm) ||
+      c.governorate.includes(searchTerm) ||
       c.city?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -55,6 +56,7 @@ export const AdminCustomers = () => {
               <tr className="bg-gray-50 text-gray-500 border-b border-gray-200">
                 <th className="p-4 font-bold">اسم العميل</th>
                 <th className="p-4 font-bold">رقم الهاتف</th>
+                <th className="p-4 font-bold">المحافظة</th>
                 <th className="p-4 font-bold">المنطقة والمدينة</th>
                 <th className="p-4 font-bold">عدد الطلبات</th>
                 <th className="p-4 font-bold">إجمالي الإنفاق</th>
@@ -71,6 +73,7 @@ export const AdminCustomers = () => {
                     <span>{customer.name}</span>
                   </td>
                   <td className="p-4 font-mono text-gray-600">{customer.phone}</td>
+                  <td className="p-4 text-gray-500">{customer.governorate}</td>
                   <td className="p-4 text-gray-600 font-medium">{customer.city}</td>
                   <td className="p-4">
                     <span className="bg-blue-50 text-blue-700 font-bold px-2 py-0.5 rounded text-[11px]">

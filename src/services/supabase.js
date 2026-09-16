@@ -270,3 +270,4 @@ export const supabaseService = {
     return null;
   }
 };
+

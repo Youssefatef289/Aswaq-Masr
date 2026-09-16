@@ -5,39 +5,48 @@ import { ChevronRight, ChevronLeft, ShoppingBag, Sparkles, ArrowLeft, Percent, M
 const slides = [
   {
     id: 1,
-    title: 'كل احتياجات بيتك في بني سويف',
-    highlight: 'بأفضل الأسعار وتوصيل فوري',
-    description: 'تسوق آلاف المنتجات من السوبرماركت والمواد الغذائية والمنظفات والألبان الطازجة مباشرة لباب بيتك.',
-    badge: 'توصيل فوري لجميع مراكز بني سويف 🚚',
-    buttonText: 'تسوق العروض الآن',
-    buttonLink: '/offers',
-    secondaryButtonText: 'تصفح الأقسام',
-    secondaryButtonLink: '/categories',
-    image: 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&w=1920&q=80',
+    badge: 'خدمة حصرية لأهالي بني سويف',
+    badgeIcon: MapPin,
+    title: 'سوبرماركت أسواق مصر',
+    highlight: 'توصيل فوري لباب البيت',
+    desc: 'تسوق جميع احتياجاتك اليومية من الأغذية، المنظفات، والأجهزة بأفضل الأسعار مع توصيل فوري لجميع مراكز وقرى محافظة بني سويف.',
+    ctaText: 'تسوق العروض الآن',
+    ctaLink: '/products',
+    secondaryText: 'تصفح الأقسام',
+    secondaryLink: '/categories',
+    image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&q=80',
+    tag: 'خصومات تصل إلى 40%',
+    bgGradient: 'from-black/90 via-black/70 to-transparent'
   },
   {
     id: 2,
-    title: 'مهرجان التوفير للأغذية والمؤن',
-    highlight: 'أجود الماركات المعتمدة 100%',
-    description: 'أكبر تشكيلة من الأرز الفاخر، الزيوت، المكرونة، والزبادي والألبان بأسعار الجملة المباشرة.',
-    badge: 'خصومات تصل إلى 35% 🔥',
-    buttonText: 'عروض المواد الغذائية',
-    buttonLink: '/category/food-cupboard',
-    secondaryButtonText: 'كل المنتجات',
-    secondaryButtonLink: '/products',
-    image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1920&q=80',
+    badge: 'مهرجان التوفير الأسبوعي',
+    badgeIcon: Percent,
+    title: 'أقوى عروض السلع والمؤن',
+    highlight: 'وفر مع كل كرتونة',
+    desc: 'عروض حصرية على الزيوت، الأرز، السكر ومنتجات الألبان من أشهر البراندات مثل جهينة وكريستال بأسعار جملة تنافسية.',
+    ctaText: 'شاهد أقوى التخفيضات',
+    ctaLink: '/offers',
+    secondaryText: 'البراندات المتاحة',
+    secondaryLink: '/brands',
+    image: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=1200&q=80',
+    tag: 'توصيل خلال ساعات',
+    bgGradient: 'from-black/90 via-black/70 to-transparent'
   },
   {
     id: 3,
-    title: 'أقوى منتجات المنظفات والعناية',
-    highlight: 'نظافة وانتعاش بأقل تكلفة',
-    description: 'وفري ميزانية بيتك مع باقات مساحيق الغسيل والمطهرات والعناية الشخصية في بني سويف.',
-    badge: 'اشتري 2 واحصل على 1 مجاناً ⭐',
-    buttonText: 'تسوق المنظفات',
-    buttonLink: '/category/cleaning-household',
-    secondaryButtonText: 'تصفح البراندات',
-    secondaryButtonLink: '/brands',
-    image: 'https://images.unsplash.com/photo-1563453392212-326f5e854473?auto=format&fit=crop&w=1920&q=80',
+    badge: 'خدمة الطلب المباشر',
+    badgeIcon: Truck,
+    title: 'اطلب بسهولة عبر الواتساب',
+    highlight: 'وادفع عند الاستلام',
+    desc: 'وفرنا لك إمكانية إرسال مشترياتك مباشرة إلى محادثة الواتساب مع خدمة التوصيل حتى باب المنزل والدفع كاش عند المعاينة.',
+    ctaText: 'ابدأ التسوق الآن',
+    ctaLink: '/products',
+    secondaryText: 'عروض خاصة',
+    secondaryLink: '/offers',
+    image: 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&w=1200&q=80',
+    tag: 'خدمة 24/7',
+    bgGradient: 'from-black/90 via-black/70 to-transparent'
   }
 ];
 
@@ -46,7 +55,7 @@ export const HeroSlider = () => {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % slides.length);
+      setCurrent((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
     }, 6000);
     return () => clearInterval(timer);
   }, []);
@@ -56,94 +65,94 @@ export const HeroSlider = () => {
   };
 
   const nextSlide = () => {
-    setCurrent((prev) => (prev + 1) % slides.length);
+    setCurrent((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
   };
 
   return (
-    <div className="relative w-full overflow-hidden rounded-2xl md:rounded-3xl shadow-xl bg-gray-950 min-h-[380px] sm:min-h-[440px] md:min-h-[480px] lg:aspect-[1920/600] flex items-center">
-      {slides.map((slide, index) => (
-        <div
-          key={slide.id}
-          className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-            index === current ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
-          }`}
-        >
-          {/* Background Image with Dark Contrast Overlay for Mobile & Desktop */}
-          <img
-            src={slide.image}
-            alt={slide.title}
-            className="w-full h-full object-cover object-center transform scale-105 transition-transform duration-7000 ease-out"
-          />
-          {/* Multi-gradient backdrop to ensure text is 100% crystal clear on any phone screen */}
-          <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-black/95 via-black/80 md:via-black/70 to-black/40 md:to-transparent" />
+    <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-gray-900 min-h-[360px] sm:min-h-[440px] md:min-h-[480px]">
+      {/* Slides */}
+      {slides.map((slide, i) => {
+        const IconComponent = slide.badgeIcon;
+        return (
+          <div
+            key={slide.id}
+            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+              i === current ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
+            }`}
+          >
+            {/* Background Image */}
+            <img
+              src={slide.image}
+              alt={slide.title}
+              className="w-full h-full object-cover object-center transform scale-105 transition-transform duration-7000 ease-out"
+            />
 
-          {/* Slide Text Content */}
-          <div className="absolute inset-0 flex items-center">
-            <div className="max-w-7xl mx-auto px-5 sm:px-10 lg:px-14 w-full py-8 md:py-0">
-              <div className="max-w-2xl text-white space-y-3 sm:space-y-4 text-right">
-                
+            {/* Gradient Overlay */}
+            <div className={`absolute inset-0 bg-gradient-to-r ${slide.bgGradient}`} />
+
+            {/* Content Container */}
+            <div className="absolute inset-0 flex items-center p-6 sm:p-10 md:p-14 z-20">
+              <div className="max-w-xl text-white space-y-3 sm:space-y-4">
                 {/* Badge */}
-                <div className="inline-flex items-center gap-2 bg-brand-red text-white text-[11px] sm:text-xs font-black px-3 py-1 rounded-full shadow-md">
-                  <Percent className="w-3.5 h-3.5 shrink-0" />
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-brand-red text-white text-xs font-bold rounded-full shadow-lg">
+                  <IconComponent className="w-3.5 h-3.5" />
                   <span>{slide.badge}</span>
                 </div>
 
-                {/* Title */}
-                <h1 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-black leading-snug sm:leading-tight text-white drop-shadow-md">
-                  {slide.title}
-                  <span className="block text-amber-300 md:text-brand-red mt-1 font-black">
-                    {slide.highlight}
-                  </span>
+                {/* Title & Highlight */}
+                <h1 className="text-2xl sm:text-4xl md:text-5xl font-black leading-tight tracking-tight">
+                  <span className="block">{slide.title}</span>
+                  <span className="text-amber-400 block mt-1">{slide.highlight}</span>
                 </h1>
 
                 {/* Description */}
-                <p className="text-xs sm:text-sm md:text-base text-gray-200 line-clamp-2 sm:line-clamp-3 leading-relaxed font-normal max-w-lg">
-                  {slide.description}
+                <p className="text-xs sm:text-sm md:text-base text-gray-200 line-clamp-2 sm:line-clamp-3 leading-relaxed font-normal">
+                  {slide.desc}
                 </p>
 
                 {/* Action Buttons */}
-                <div className="pt-2 sm:pt-4 flex items-center gap-2.5 sm:gap-3">
+                <div className="flex flex-wrap items-center gap-3 pt-2">
                   <Link
-                    to={slide.buttonLink}
-                    className="bg-brand-red hover:bg-brand-darkRed text-white px-5 sm:px-7 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg hover:shadow-red-600/30 transition transform hover:-translate-y-0.5 active:scale-95"
+                    to={slide.ctaLink}
+                    className="bg-brand-red hover:bg-brand-darkRed text-white px-5 sm:px-7 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg hover:shadow-brand-red/50 transition transform hover:-translate-y-0.5"
                   >
-                    <ShoppingBag className="w-4 h-4 shrink-0" />
-                    <span>{slide.buttonText}</span>
+                    <ShoppingBag className="w-4 h-4" />
+                    <span>{slide.ctaText}</span>
                   </Link>
 
                   <Link
-                    to={slide.secondaryButtonLink}
-                    className="bg-white/15 hover:bg-white/25 text-white border border-white/30 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm backdrop-blur-md transition flex items-center gap-1.5"
+                    to={slide.secondaryLink}
+                    className="bg-white/15 hover:bg-white/25 text-white backdrop-blur-md px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 border border-white/20 transition"
                   >
-                    <span>{slide.secondaryButtonText}</span>
-                    <ArrowLeft className="w-4 h-4 shrink-0" />
+                    <span>{slide.secondaryText}</span>
+                    <ArrowLeft className="w-4 h-4" />
                   </Link>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
 
-      {/* Navigation Arrows (Hidden on very small screens for clean UI, visible on sm+) */}
+      {/* Navigation Arrows */}
       <button
         onClick={prevSlide}
-        aria-label="السابق"
-        className="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-black/50 hover:bg-brand-red text-white items-center justify-center backdrop-blur-xs transition border border-white/20"
+        className="absolute right-4 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-sm flex items-center justify-center border border-white/10 transition"
+        aria-label="Previous slide"
       >
         <ChevronRight className="w-5 h-5" />
       </button>
 
       <button
         onClick={nextSlide}
-        aria-label="التالي"
-        className="hidden sm:flex absolute left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-black/50 hover:bg-brand-red text-white items-center justify-center backdrop-blur-xs transition border border-white/20"
+        className="absolute left-4 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-sm flex items-center justify-center border border-white/10 transition"
+        aria-label="Next slide"
       >
         <ChevronLeft className="w-5 h-5" />
       </button>
 
       {/* Dots Indicator */}
-      <div className="absolute bottom-3 right-1/2 translate-x-1/2 z-20 flex items-center gap-1.5">
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2">
         {slides.map((_, i) => (
           <button
             key={i}
@@ -151,7 +160,7 @@ export const HeroSlider = () => {
             className={`h-2 rounded-full transition-all duration-300 ${
               i === current ? 'w-6 bg-brand-red' : 'w-2 bg-white/40 hover:bg-white'
             }`}
-            aria-label={`الشريحة ${i + 1}`}
+            aria-label={`Go to slide ${i + 1}`}
           />
         ))}
       </div>
