@@ -9,15 +9,15 @@ export const AuthProvider = ({ children }) => {
     try {
       const saved = localStorage.getItem('aswaaq_user');
       return saved ? JSON.parse(saved) : {
-        id: 'usr-1',
-        name: 'كريم الشناوي',
-        email: 'karim@example.com',
+        id: 'usr-admin-1',
+        name: 'Admin',
+        email: 'admin@aswaqmasr.com',
         phone: '01012345678',
-        role: 'admin', // default to admin for seamless evaluation of admin panel
+        role: 'admin',
         avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-        governorate: 'cairo',
-        city: 'المعادي',
-        address: 'شارع 9، المعادي، القاهرة'
+        governorate: 'beni-suef',
+        city: 'بني سويف',
+        address: 'بني سويف، جمهورية مصر العربية'
       };
     } catch {
       return null;
@@ -32,22 +32,45 @@ export const AuthProvider = ({ children }) => {
     }
   }, [user]);
 
-  const login = (email, password, role = 'user') => {
-    // Simulated login
+  const login = (emailOrUsername, password, role = 'user') => {
+    const cleanInput = (emailOrUsername || '').trim().toLowerCase();
+    
+    // Dedicated Admin Authentication check
+    if (
+      (cleanInput === 'admin@aswaqmasr.com' || cleanInput === 'admin') &&
+      password === 'Admin@AswaqMasr2026'
+    ) {
+      const adminUser = {
+        id: 'usr-admin-1',
+        name: 'Admin',
+        email: 'admin@aswaqmasr.com',
+        phone: '01012345678',
+        role: 'admin',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+        governorate: 'beni-suef',
+        city: 'بني سويف',
+        address: 'بني سويف، جمهورية مصر العربية'
+      };
+      setUser(adminUser);
+      addToast('تم تسجيل دخول مسؤول لوحة التحكم بنجاح! 👑', 'success');
+      return { success: true, user: adminUser };
+    }
+
+    // Standard User / Fallback Login
     const newUser = {
       id: 'usr-' + Date.now(),
-      name: email.split('@')[0] || 'مستخدم أسواق مصر',
-      email: email,
+      name: cleanInput.split('@')[0] || 'مستخدم أسواق مصر',
+      email: cleanInput.includes('@') ? cleanInput : `${cleanInput}@aswaqmasr.com`,
       phone: '010' + Math.floor(10000000 + Math.random() * 90000000),
-      role: email.includes('admin') ? 'admin' : role,
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-      governorate: 'cairo',
-      city: 'القاهرة',
-      address: 'القاهرة، جمهورية مصر العربية'
+      role: role,
+      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
+      governorate: 'beni-suef',
+      city: 'بني سويف',
+      address: 'بني سويف، جمهورية مصر العربية'
     };
     setUser(newUser);
     addToast(`مرحباً بك مجدداً، ${newUser.name}! 👋`, 'success');
-    return true;
+    return { success: true, user: newUser };
   };
 
   const register = (userData) => {
@@ -57,10 +80,10 @@ export const AuthProvider = ({ children }) => {
       email: userData.email,
       phone: userData.phone,
       role: userData.role || 'user',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-      governorate: userData.governorate || 'cairo',
-      city: userData.city || 'القاهرة',
-      address: userData.address || ''
+      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
+      governorate: 'beni-suef',
+      city: userData.city || 'بني سويف',
+      address: userData.address || 'بني سويف'
     };
     setUser(newUser);
     addToast('تم إنشاء الحساب بنجاح! أهلاً بك في أسواق مصر 🎉', 'success');
@@ -102,4 +125,3 @@ export const useAuth = () => {
   }
   return context;
 };
-

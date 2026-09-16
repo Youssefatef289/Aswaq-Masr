@@ -4,6 +4,7 @@ import { initialCategories } from '../data/categories';
 import { initialBrands } from '../data/brands';
 import { initialOffers } from '../data/offers';
 import { initialOrders } from '../data/orders';
+import { supabaseService, isSupabaseConfigured } from '../services/supabase';
 import { useToast } from './ToastContext';
 
 const AdminDataContext = createContext();
@@ -67,15 +68,15 @@ export const AdminDataProvider = ({ children }) => {
       const saved = localStorage.getItem('aswaaq_settings');
       return saved ? JSON.parse(saved) : {
         storeName: 'أسواق مصر',
-        tagline: 'وجهتك الأولى للتسوق الإلكتروني في مصر',
+        tagline: 'كل احتياجات بيتك في بني سويف بأفضل سعر وأسرع توصيل',
         phone: '19888',
         whatsapp: '+201012345678',
-        email: 'info@aswaaqmasr.com',
-        address: 'شارع التسعين الجنوبي، التجمع الخامس، القاهرة الجديدة',
-        facebook: 'https://facebook.com/aswaaqmasr',
-        instagram: 'https://instagram.com/aswaaqmasr',
-        freeShippingMin: 1000,
-        defaultDeliveryFee: 30,
+        email: 'info@aswaqmasr.com',
+        address: 'بني سويف - شارع عبد السلام عارف - بجوار البنك الأهلي',
+        facebook: 'https://facebook.com/aswaqmasr',
+        instagram: 'https://instagram.com/aswaqmasr',
+        freeShippingMin: 500,
+        defaultDeliveryFee: 20,
         enableCod: true,
         enableCard: true,
         taxRate: 14
@@ -83,21 +84,47 @@ export const AdminDataProvider = ({ children }) => {
     } catch {
       return {
         storeName: 'أسواق مصر',
-        tagline: 'وجهتك الأولى للتسوق الإلكتروني في مصر',
+        tagline: 'كل احتياجات بيتك في بني سويف بأفضل سعر وأسرع توصيل',
         phone: '19888',
         whatsapp: '+201012345678',
-        email: 'info@aswaaqmasr.com',
-        address: 'شارع التسعين الجنوبي، التجمع الخامس، القاهرة الجديدة',
-        facebook: 'https://facebook.com/aswaaqmasr',
-        instagram: 'https://instagram.com/aswaaqmasr',
-        freeShippingMin: 1000,
-        defaultDeliveryFee: 30,
+        email: 'info@aswaqmasr.com',
+        address: 'بني سويف - شارع عبد السلام عارف - بجوار البنك الأهلي',
+        facebook: 'https://facebook.com/aswaqmasr',
+        instagram: 'https://instagram.com/aswaqmasr',
+        freeShippingMin: 500,
+        defaultDeliveryFee: 20,
         enableCod: true,
         enableCard: true,
         taxRate: 14
       };
     }
   });
+
+  // Supabase Initial Sync on mount if configured
+  useEffect(() => {
+    if (isSupabaseConfigured) {
+      // Sync products
+      supabaseService.getProducts().then((remoteProducts) => {
+        if (remoteProducts && remoteProducts.length > 0) setProducts(remoteProducts);
+      });
+      // Sync categories
+      supabaseService.getCategories().then((remoteCategories) => {
+        if (remoteCategories && remoteCategories.length > 0) setCategories(remoteCategories);
+      });
+      // Sync brands
+      supabaseService.getBrands().then((remoteBrands) => {
+        if (remoteBrands && remoteBrands.length > 0) setBrands(remoteBrands);
+      });
+      // Sync orders
+      supabaseService.getOrders().then((remoteOrders) => {
+        if (remoteOrders && remoteOrders.length > 0) setOrders(remoteOrders);
+      });
+      // Sync settings
+      supabaseService.getSettings().then((remoteSettings) => {
+        if (remoteSettings) setSettings(prev => ({ ...prev, ...remoteSettings }));
+      });
+    }
+  }, []);
 
   // Sync to localStorage
   useEffect(() => {
@@ -125,7 +152,7 @@ export const AdminDataProvider = ({ children }) => {
   }, [settings]);
 
   // Product Operations
-  const addProduct = (productData) => {
+  const addProduct = async (productData) => {
     const newProduct = {
       ...productData,
       id: 'prod-' + Date.now(),
@@ -136,66 +163,76 @@ export const AdminDataProvider = ({ children }) => {
       isNew: true,
       images: productData.images?.length > 0 ? productData.images : [productData.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80']
     };
+
     setProducts((prev) => [newProduct, ...prev]);
+    supabaseService.addProduct(newProduct);
     addToast(`تمت إضافة المنتج "${newProduct.name}" بنجاح`, 'success');
     return newProduct;
   };
 
-  const updateProduct = (id, updatedFields) => {
+  const updateProduct = async (id, updatedFields) => {
     setProducts((prev) =>
       prev.map((item) => (item.id === id ? { ...item, ...updatedFields } : item))
     );
+    supabaseService.updateProduct(id, updatedFields);
     addToast('تم تحديث بيانات المنتج بنجاح', 'success');
   };
 
-  const deleteProduct = (id) => {
+  const deleteProduct = async (id) => {
     setProducts((prev) => prev.filter((item) => item.id !== id));
+    supabaseService.deleteProduct(id);
     addToast('تم حذف المنتج بنجاح', 'info');
   };
 
   // Category Operations
-  const addCategory = (categoryData) => {
+  const addCategory = async (categoryData) => {
     const newCategory = {
       ...categoryData,
       id: categoryData.id || 'cat-' + Date.now(),
       productCount: 0
     };
     setCategories((prev) => [...prev, newCategory]);
+    supabaseService.addCategory(newCategory);
     addToast(`تمت إضافة القسم "${newCategory.name}" بنجاح`, 'success');
   };
 
-  const updateCategory = (id, updatedFields) => {
+  const updateCategory = async (id, updatedFields) => {
     setCategories((prev) =>
       prev.map((cat) => (cat.id === id ? { ...cat, ...updatedFields } : cat))
     );
+    supabaseService.updateCategory(id, updatedFields);
     addToast('تم تحديث القسم بنجاح', 'success');
   };
 
-  const deleteCategory = (id) => {
+  const deleteCategory = async (id) => {
     setCategories((prev) => prev.filter((cat) => cat.id !== id));
+    supabaseService.deleteCategory(id);
     addToast('تم حذف القسم بنجاح', 'info');
   };
 
   // Brand Operations
-  const addBrand = (brandData) => {
+  const addBrand = async (brandData) => {
     const newBrand = {
       ...brandData,
       id: brandData.id || 'brand-' + Date.now(),
       productCount: 0
     };
     setBrands((prev) => [...prev, newBrand]);
+    supabaseService.addBrand(newBrand);
     addToast(`تمت إضافة الماركة "${newBrand.name}" بنجاح`, 'success');
   };
 
-  const updateBrand = (id, updatedFields) => {
+  const updateBrand = async (id, updatedFields) => {
     setBrands((prev) =>
       prev.map((b) => (b.id === id ? { ...b, ...updatedFields } : b))
     );
+    supabaseService.updateBrand(id, updatedFields);
     addToast('تم تحديث بيانات البراند بنجاح', 'success');
   };
 
-  const deleteBrand = (id) => {
+  const deleteBrand = async (id) => {
     setBrands((prev) => prev.filter((b) => b.id !== id));
+    supabaseService.deleteBrand(id);
     addToast('تم حذف البراند بنجاح', 'info');
   };
 
@@ -232,6 +269,7 @@ export const AdminDataProvider = ({ children }) => {
       ...orderData
     };
     setOrders((prev) => [newOrder, ...prev]);
+    supabaseService.createOrder(newOrder);
     return newOrder;
   };
 
@@ -252,12 +290,14 @@ export const AdminDataProvider = ({ children }) => {
           : ord
       )
     );
+    supabaseService.updateOrderStatus(orderId, newStatus);
     addToast(`تم تغيير حالة الطلب ${orderId} إلى: ${statusLabels[newStatus]}`, 'success');
   };
 
   // Settings update
   const updateSettings = (newSettings) => {
     setSettings((prev) => ({ ...prev, ...newSettings }));
+    supabaseService.updateSettings(newSettings);
     addToast('تم حفظ إعدادات المتجر بنجاح', 'success');
   };
 
@@ -299,4 +339,3 @@ export const useAdminData = () => {
   }
   return context;
 };
-

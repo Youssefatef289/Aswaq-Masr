@@ -3,6 +3,7 @@ import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 
 const ToastContext = createContext();
 
+
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 

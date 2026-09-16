@@ -3,21 +3,21 @@ import { useNavigate, Link } from 'react-router-dom';
 import { 
   ShieldCheck, Truck, CreditCard, Banknote, 
   MapPin, Phone, User, FileText, CheckCircle2, 
-  AlertCircle, Lock, ArrowLeft 
+  AlertCircle, Lock, ArrowLeft, MessageCircle 
 } from 'lucide-react';
 import { Breadcrumbs } from '../components/common/Breadcrumbs';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useAdminData } from '../context/AdminDataContext';
 import { useToast } from '../context/ToastContext';
-import { egyptianGovernorates } from '../data/governorates';
+import { beniSuefDistricts } from '../data/governorates';
 import { formatPrice } from '../utils/formatters';
 
 export const Checkout = () => {
   const navigate = useNavigate();
   const { addToast } = useToast();
   const { user } = useAuth();
-  const { createOrder } = useAdminData();
+  const { createOrder, settings } = useAdminData();
   const {
     cartItems,
     subtotal,
@@ -25,7 +25,6 @@ export const Checkout = () => {
     coupon,
     shippingCost,
     setShippingCost,
-    setShippingGovernorate,
     grandTotal,
     clearCart
   } = useCart();
@@ -35,22 +34,20 @@ export const Checkout = () => {
     fullName: user?.name || '',
     phone: user?.phone || '',
     alternatePhone: '',
-    governorate: user?.governorate || 'cairo',
-    city: user?.city || 'القاهرة',
+    district: beniSuefDistricts[0]?.id || 'beni-suef-city',
     address: user?.address || '',
     notes: '',
-    paymentMethod: 'cod' // 'cod' | 'card' | 'wallet'
+    paymentMethod: 'cod' // 'cod' | 'whatsapp'
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // When user selects a governorate, update shipping cost
-  const handleGovernorateChange = (govId) => {
-    const selectedGov = egyptianGovernorates.find((g) => g.id === govId);
-    setFormData((prev) => ({ ...prev, governorate: govId }));
-    setShippingGovernorate(govId);
-    if (selectedGov) {
-      setShippingCost(selectedGov.shippingCost);
+  // When user selects a district in Beni Suef, update shipping cost
+  const handleDistrictChange = (districtId) => {
+    const selectedDist = beniSuefDistricts.find((d) => d.id === districtId);
+    setFormData((prev) => ({ ...prev, district: districtId }));
+    if (selectedDist) {
+      setShippingCost(selectedDist.shippingCost);
     }
   };
 
@@ -60,7 +57,7 @@ export const Checkout = () => {
   };
 
   const handleSubmitOrder = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
 
     if (cartItems.length === 0) {
       addToast('سلة المشتريات فارغة!', 'error');
@@ -69,29 +66,24 @@ export const Checkout = () => {
     }
 
     if (!formData.fullName.trim() || !formData.phone.trim() || !formData.address.trim()) {
-      addToast('يرجى ملء جميع الحقول المطلوبة', 'error');
+      addToast('يرجى ملء جميع الحقول المطلوبة (الاسم، الهاتف، العنوان)', 'error');
       return;
     }
 
     setIsSubmitting(true);
 
-    const selectedGov = egyptianGovernorates.find((g) => g.id === formData.governorate);
-    const govName = selectedGov?.name || formData.governorate;
+    const selectedDist = beniSuefDistricts.find((d) => d.id === formData.district);
+    const distName = selectedDist?.name || formData.district;
 
     const newOrder = createOrder({
       customerName: formData.fullName,
       phone: formData.phone,
       alternatePhone: formData.alternatePhone,
-      governorate: govName,
-      city: formData.city,
+      governorate: 'بني سويف',
+      city: distName,
       address: formData.address,
       notes: formData.notes,
-      paymentMethod:
-        formData.paymentMethod === 'cod'
-          ? 'الدفع عند الاستلام'
-          : formData.paymentMethod === 'card'
-          ? 'بطاقة بنكية'
-          : 'محفظة إلكترونية (فودافون كاش)',
+      paymentMethod: formData.paymentMethod === 'cod' ? 'الدفع عند الاستلام' : 'طلب مباشر عبر الواتساب',
       subtotal,
       discount,
       shippingCost,
@@ -105,10 +97,47 @@ export const Checkout = () => {
       }))
     });
 
-    // Clear cart and go to confirmation
     clearCart();
     setIsSubmitting(false);
     navigate('/order-success', { state: { order: newOrder } });
+  };
+
+  const handleWhatsAppOrder = () => {
+    if (!formData.fullName.trim() || !formData.phone.trim() || !formData.address.trim()) {
+      addToast('يرجى ملء الاسم والهاتف والعنوان أولاً قبل فتح الواتساب', 'error');
+      return;
+    }
+
+    const selectedDist = beniSuefDistricts.find((d) => d.id === formData.district);
+    const districtName = selectedDist?.name || formData.district;
+    const whatsappNum = settings?.whatsapp?.replace(/[^0-9]/g, '') || '201012345678';
+
+    const itemsText = cartItems
+      .map((item, idx) => `${idx + 1}. *${item.name}* (العدد: ${item.quantity}) - ${formatPrice(item.price * item.quantity)}`)
+      .join('\n');
+
+    const message = `🛍️ *طلب جديد من متجر أسواق مصر (نطاق بني سويف)* 🇪🇬
+━━━━━━━━━━━━━━━━━━
+👤 *اسم العميل:* ${formData.fullName}
+📞 *رقم الهاتف:* ${formData.phone}
+📍 *المنطقة/المركز:* ${districtName}
+🏠 *العنوان بالتفصيل:* ${formData.address}
+${formData.notes ? `📝 *ملاحظات:* ${formData.notes}\n` : ''}
+📦 *المنتجات المطلوبة:*
+${itemsText}
+
+━━━━━━━━━━━━━━━━━━
+💵 *المجموع الفرعي:* ${formatPrice(subtotal)}
+🚚 *خدمة التوصيل:* ${shippingCost === 0 ? 'مجاناً' : formatPrice(shippingCost)}
+💰 *الإجمالي المستحق:* ${formatPrice(grandTotal)}
+━━━━━━━━━━━━━━━━━━
+برجاء تأكيد استلام الطلب وتحديد موعد التوصيل. شكراً لكم!`;
+
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/${whatsappNum}?text=${encodedMessage}`;
+
+    handleSubmitOrder();
+    window.open(whatsappUrl, '_blank');
   };
 
   if (cartItems.length === 0) {
@@ -132,16 +161,18 @@ export const Checkout = () => {
       />
 
       <div className="flex items-center justify-between pb-2 border-b border-gray-200">
-        <h1 className="text-xl sm:text-2xl font-black text-gray-900 flex items-center gap-2">
-          <Lock className="w-5 h-5 text-brand-red" />
-          <span>إتمام الطلب والشحن الآمن</span>
-        </h1>
-        <span className="text-xs text-gray-500 hidden sm:block">
-          جميع بياناتك مشفرة ومحمية 100%
-        </span>
+        <div>
+          <h1 className="text-xl sm:text-2xl font-black text-gray-900 flex items-center gap-2">
+            <Lock className="w-5 h-5 text-brand-red" />
+            <span>إتمام الطلب والشحن (محافظة بني سويف)</span>
+          </h1>
+          <span className="text-xs text-emerald-600 font-bold block mt-1">
+            ✓ التوصيل فوري خلال ساعات لجميع مراكز وقرى بني سويف
+          </span>
+        </div>
       </div>
 
-      <form onSubmit={handleSubmitOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
         {/* Checkout Form (7 cols) */}
         <div className="lg:col-span-7 space-y-6">
@@ -150,7 +181,7 @@ export const Checkout = () => {
           <div className="bg-white rounded-3xl border border-gray-200 p-6 shadow-sm space-y-4">
             <h2 className="text-base font-black text-gray-900 flex items-center gap-2 border-b border-gray-100 pb-3">
               <MapPin className="w-5 h-5 text-brand-red" />
-              <span>بيانات التوصيل والعنوان</span>
+              <span>بيانات التوصيل في بني سويف</span>
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -201,39 +232,23 @@ export const Checkout = () => {
                 />
               </div>
 
-              {/* Governorate */}
-              <div>
+              {/* District / City in Beni Suef */}
+              <div className="sm:col-span-2">
                 <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                  المحافظة <span className="text-red-500">*</span>
+                  المركز / المنطقة في بني سويف <span className="text-red-500">*</span>
                 </label>
                 <select
-                  name="governorate"
-                  value={formData.governorate}
-                  onChange={(e) => handleGovernorateChange(e.target.value)}
+                  name="district"
+                  value={formData.district}
+                  onChange={(e) => handleDistrictChange(e.target.value)}
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-brand-red focus:bg-white cursor-pointer"
                 >
-                  {egyptianGovernorates.map((gov) => (
-                    <option key={gov.id} value={gov.id}>
-                      {gov.name} (الشحن: {gov.shippingCost} ج.م - {gov.estimatedDays})
+                  {beniSuefDistricts.map((dist) => (
+                    <option key={dist.id} value={dist.id}>
+                      {dist.name} (تكلفة التوصيل: {dist.shippingCost} ج.م - {dist.estimatedDays})
                     </option>
                   ))}
                 </select>
-              </div>
-
-              {/* City / Area */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                  المدينة / الحي <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="city"
-                  required
-                  value={formData.city}
-                  onChange={handleInputChange}
-                  placeholder="مثال: المعادي، الدقي، سموحة..."
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-brand-red focus:bg-white"
-                />
               </div>
 
               {/* Detailed Address */}
@@ -247,7 +262,7 @@ export const Checkout = () => {
                   rows={2}
                   value={formData.address}
                   onChange={handleInputChange}
-                  placeholder="شارع 9، عمارة 12، الدور الرابع، بجوار مسجد..."
+                  placeholder="شارع عبد السلام عارف، بجوار مسجد..."
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-xs text-gray-900 focus:outline-none focus:border-brand-red focus:bg-white"
                 />
               </div>
@@ -273,7 +288,7 @@ export const Checkout = () => {
           <div className="bg-white rounded-3xl border border-gray-200 p-6 shadow-sm space-y-4">
             <h2 className="text-base font-black text-gray-900 flex items-center gap-2 border-b border-gray-100 pb-3">
               <Banknote className="w-5 h-5 text-brand-red" />
-              <span>طريقة الدفع</span>
+              <span>طريقة الدفع والتأكيد</span>
             </h2>
 
             <div className="space-y-3">
@@ -303,15 +318,15 @@ export const Checkout = () => {
                     </span>
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    ادفع نقداً لمندوب الشحن عند استلام الطلب وفحصه أمام باب بيتك.
+                    ادفع نقداً لمندوب الشحن عند استلام الطلب وفحصه أمام باب بيتك في بني سويف.
                   </p>
                 </div>
               </label>
 
-              {/* Online Card */}
+              {/* Direct WhatsApp Option */}
               <label
                 className={`flex items-start gap-3 p-4 rounded-2xl border-2 cursor-pointer transition ${
-                  formData.paymentMethod === 'card'
+                  formData.paymentMethod === 'whatsapp'
                     ? 'border-brand-red bg-red-50/50'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
@@ -319,49 +334,23 @@ export const Checkout = () => {
                 <input
                   type="radio"
                   name="paymentMethod"
-                  value="card"
-                  checked={formData.paymentMethod === 'card'}
+                  value="whatsapp"
+                  checked={formData.paymentMethod === 'whatsapp'}
                   onChange={handleInputChange}
                   className="mt-1 accent-brand-red cursor-pointer"
                 />
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs sm:text-sm font-bold text-gray-900">
-                      البطاقات البنكية (Visa / MasterCard / ميزة)
+                    <span className="text-xs sm:text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                      <MessageCircle className="w-4 h-4 text-emerald-600 fill-emerald-600" />
+                      <span>الطلب المباشر والمتابعة عبر الواتساب</span>
                     </span>
-                    <CreditCard className="w-4 h-4 text-gray-500" />
+                    <span className="text-[11px] bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded border border-emerald-200">
+                      فوري
+                    </span>
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    دفع آمن ومحمي بأعلى معايير الأمان 3D Secure.
-                  </p>
-                </div>
-              </label>
-
-              {/* Mobile Wallet */}
-              <label
-                className={`flex items-start gap-3 p-4 rounded-2xl border-2 cursor-pointer transition ${
-                  formData.paymentMethod === 'wallet'
-                    ? 'border-brand-red bg-red-50/50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="wallet"
-                  checked={formData.paymentMethod === 'wallet'}
-                  onChange={handleInputChange}
-                  className="mt-1 accent-brand-red cursor-pointer"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs sm:text-sm font-bold text-gray-900">
-                      محافظ الموبايل (فودافون كاش، اتصالات كاش، أورنج، وي باي)
-                    </span>
-                    <span className="text-[11px] font-bold text-brand-red">كاش</span>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    تحويل مباشر وسهل عبر رقم محفظتك الإلكترونية.
+                    إرسال تفاصيل الفاتورة مباشرة لمحادثة خدمة العملاء على الواتساب وتأكيد الموعد.
                   </p>
                 </div>
               </label>
@@ -369,11 +358,11 @@ export const Checkout = () => {
           </div>
         </div>
 
-        {/* Order Summary & Confirm (5 cols) */}
+        {/* Order Summary (5 cols) */}
         <div className="lg:col-span-5 space-y-4">
           <div className="bg-white rounded-3xl border border-gray-200 p-6 shadow-sm space-y-5 sticky top-24">
             <h2 className="text-base font-black text-gray-900 pb-3 border-b border-gray-100">
-              محتويات طلبك ({cartItems.length} أصناف)
+              ملخص طلبك ({cartItems.length} أصناف)
             </h2>
 
             {/* Items Mini List */}
@@ -413,7 +402,7 @@ export const Checkout = () => {
               )}
 
               <div className="flex items-center justify-between">
-                <span>تكلفة الشحن:</span>
+                <span>توصيل بني سويف:</span>
                 <span className="font-bold text-gray-900">
                   {shippingCost === 0 ? (
                     <span className="text-emerald-600 font-black">مجاناً 🎉</span>
@@ -424,30 +413,37 @@ export const Checkout = () => {
               </div>
 
               <div className="flex items-center justify-between pt-3 border-t border-gray-200 text-sm">
-                <span className="font-black text-gray-900">الإجمالي النهائي المستحق:</span>
+                <span className="font-black text-gray-900">الإجمالي النهائي:</span>
                 <span className="text-xl font-black text-brand-red">
                   {formatPrice(grandTotal)}
                 </span>
               </div>
             </div>
 
-            {/* Submit Order Button */}
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full py-4 px-6 rounded-xl font-black text-sm bg-brand-red hover:bg-brand-darkRed text-white flex items-center justify-center gap-2 shadow-xl shadow-red-500/25 transition-all transform active:scale-98 disabled:opacity-50"
-            >
-              <CheckCircle2 className="w-5 h-5" />
-              <span>{isSubmitting ? 'جاري تأكيد الطلب...' : 'تأكيد وإتمام الطلب الآن'}</span>
-            </button>
+            {/* Action Buttons: WhatsApp Order + Standard COD Confirm */}
+            <div className="space-y-2.5 pt-2">
+              <button
+                type="button"
+                onClick={handleWhatsAppOrder}
+                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition transform active:scale-98"
+              >
+                <MessageCircle className="w-5 h-5 fill-white" />
+                <span>الطلب المباشر عبر الواتساب (WhatsApp)</span>
+              </button>
 
-            <p className="text-[11px] text-center text-gray-400 leading-relaxed">
-              بالضغط على تأكيد الطلب، فإنك توافق على شروط وسياسة الاستخدام في أسواق مصر.
-            </p>
+              <button
+                type="button"
+                onClick={handleSubmitOrder}
+                disabled={isSubmitting}
+                className="w-full py-3 bg-brand-red hover:bg-brand-darkRed text-white font-black text-xs sm:text-sm rounded-xl flex items-center justify-center gap-2 shadow-md transition disabled:opacity-50"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>{isSubmitting ? 'جاري التأكيد...' : 'تأكيد الطلب (الدفع عند الاستلام)'}</span>
+              </button>
+            </div>
           </div>
         </div>
-      </form>
+      </div>
     </div>
   );
 };
-
