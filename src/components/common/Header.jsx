@@ -15,7 +15,7 @@ export const Header = ({ onOpenCart }) => {
   const location = useLocation();
   const { totalItemsCount, grandTotal } = useCart();
   const { wishlistCount } = useWishlist();
-  const { user, isAuthenticated, isAdmin, logout } = useAuth();
+  const { user, isAuthenticated, canManageStore, logout } = useAuth();
   const { categories, brands = [], products = [] } = useAdminData();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -135,7 +135,7 @@ export const Header = ({ onOpenCart }) => {
               <span className="font-semibold text-white">الخط الساخن: 19888</span>
             </div>
             <span className="text-gray-600">|</span>
-            {isAdmin && (
+            {canManageStore && (
               <Link
                 to="/admin"
                 className="flex items-center gap-1 text-red-400 hover:text-red-300 bg-red-950/60 px-2 py-0.5 rounded font-bold border border-red-800/60 transition"
@@ -332,7 +332,7 @@ export const Header = ({ onOpenCart }) => {
                     <p className="text-sm font-bold text-gray-800 truncate">{user.name}</p>
                     <p className="text-xs text-gray-500 truncate">{user.email}</p>
                   </div>
-                  {isAdmin && (
+                  {canManageStore && (
                     <Link
                       to="/admin"
                       onClick={() => setIsUserMenuOpen(false)}

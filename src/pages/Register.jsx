@@ -1,44 +1,60 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Mail, Phone, Lock, UserPlus, MapPin } from 'lucide-react';
+import { User, Mail, Phone, UserPlus, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { egyptianGovernorates } from '../data/governorates';
 
 export const Register = () => {
   const navigate = useNavigate();
-  const { register } = useAuth();
+  const { register, isSupabaseConfigured } = useAuth();
 
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
-    governorate: 'cairo',
+    governorate: 'beni-suef',
     city: '',
     password: '',
     confirmPassword: ''
   });
 
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [requiresEmailConfirmation, setRequiresEmailConfirmation] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+
     if (formData.password !== formData.confirmPassword) {
       setError('كلمات المرور غير متطابقة');
       return;
     }
 
-    register({
+    setIsSubmitting(true);
+    const res = await register({
       name: formData.name,
       email: formData.email,
       phone: formData.phone,
       governorate: formData.governorate,
-      city: formData.city
+      city: formData.city,
+      password: formData.password
     });
+    setIsSubmitting(false);
 
+    if (!res?.success) {
+      setError(typeof res?.error === 'string' ? res.error : 'تعذر إنشاء الحساب');
+      return;
+    }
+
+    if (res.requiresEmailConfirmation) {
+      setRequiresEmailConfirmation(true);
+      return;
+    }
     navigate('/');
   };
 
@@ -47,9 +63,15 @@ export const Register = () => {
       <div className="text-center space-y-2">
         <h1 className="text-2xl font-black text-gray-900">إنشاء حساب جديد</h1>
         <p className="text-xs text-gray-500">
-          انضم لعائلة أسواق مصر وتمتع بأقوى العروض ونقاط المكافآت والتوصيل السريع!
+          انضم لعائلة أسواق مصر وتمتع بأقوى العروض والتوصيل السريع!
         </p>
       </div>
+
+      {!isSupabaseConfigured && (
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-800 font-bold">
+          لم يتم إعداد Supabase بعد. أضف VITE_SUPABASE_URL و VITE_SUPABASE_ANON_KEY في ملف .env
+        </div>
+      )}
 
       {error && (
         <div className="p-3 bg-red-50 text-brand-red text-xs font-bold rounded-xl text-center">
@@ -57,6 +79,26 @@ export const Register = () => {
         </div>
       )}
 
+      {requiresEmailConfirmation && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-center space-y-3">
+          <div className="w-14 h-14 bg-green-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+            <CheckCircle2 className="w-8 h-8" />
+          </div>
+          <h3 className="text-sm font-black text-gray-900">تم إنشاء الحساب بنجاح!</h3>
+          <p className="text-xs text-gray-600 leading-relaxed">
+            أرسلنا لك رابط تأكيد على بريدك الإلكتروني <strong>{formData.email}</strong>.
+            يرجى تأكيد البريد ثم تسجيل الدخول.
+          </p>
+          <Link
+            to="/login"
+            className="inline-block text-xs font-bold text-brand-red hover:underline"
+          >
+            الانتقال لتسجيل الدخول
+          </Link>
+        </div>
+      )}
+
+      {!requiresEmailConfirmation && (
       <form onSubmit={handleSubmit} className="space-y-3.5">
         <div>
           <label className="block text-xs font-bold text-gray-700 mb-1">الاسم بالكامل</label>
@@ -128,7 +170,7 @@ export const Register = () => {
               name="city"
               value={formData.city}
               onChange={handleChange}
-              placeholder="المعادي"
+              placeholder="بني سويف الجديدة"
               className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-3 text-xs text-gray-900 focus:outline-none focus:border-brand-red focus:bg-white"
             />
           </div>
@@ -146,6 +188,7 @@ export const Register = () => {
               placeholder="••••••••"
               className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 px-3 text-xs text-gray-900 focus:outline-none focus:border-brand-red focus:bg-white"
             />
+            <span className="text-[10px] text-gray-400 block mt-0.5">8 أحرف على الأقل</span>
           </div>
 
           <div>
@@ -164,12 +207,14 @@ export const Register = () => {
 
         <button
           type="submit"
-          className="w-full py-3 px-4 bg-brand-red hover:bg-brand-darkRed text-white rounded-xl text-xs sm:text-sm font-black flex items-center justify-center gap-2 shadow-md transition mt-4"
+          disabled={isSubmitting}
+          className="w-full py-3 px-4 bg-brand-red hover:bg-brand-darkRed text-white rounded-xl text-xs sm:text-sm font-black flex items-center justify-center gap-2 shadow-md transition mt-4 disabled:opacity-60"
         >
           <UserPlus className="w-4 h-4" />
-          <span>إنشاء الحساب والتسجيل</span>
+          <span>{isSubmitting ? 'جاري إنشاء الحساب...' : 'إنشاء الحساب والتسجيل'}</span>
         </button>
       </form>
+      )}
 
       <div className="text-center text-xs text-gray-500 pt-2 border-t border-gray-100">
         لديك حساب بالفعل؟{' '}
@@ -180,4 +225,3 @@ export const Register = () => {
     </div>
   );
 };
-

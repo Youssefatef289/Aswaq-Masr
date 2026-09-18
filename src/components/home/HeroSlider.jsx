@@ -88,11 +88,11 @@ export const HeroSlider = () => {
             />
 
             {/* Gradient Overlay */}
-            <div className={`absolute inset-0 bg-gradient-to-r ${slide.bgGradient}`} />
+            <div className={`absolute inset-0 bg-gradient-to-t sm:bg-gradient-to-r ${slide.bgGradient}`} />
 
             {/* Content Container */}
-            <div className="absolute inset-0 flex items-center p-6 sm:p-10 md:p-14 z-20">
-              <div className="max-w-xl text-white space-y-3 sm:space-y-4">
+            <div className="absolute inset-0 flex items-end sm:items-center p-5 pb-14 sm:p-10 md:p-14 z-20">
+              <div className="max-w-xl text-white space-y-3 sm:space-y-4 w-full">
                 {/* Badge */}
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-brand-red text-white text-xs font-bold rounded-full shadow-lg">
                   <IconComponent className="w-3.5 h-3.5" />
@@ -106,7 +106,7 @@ export const HeroSlider = () => {
                 </h1>
 
                 {/* Description */}
-                <p className="text-xs sm:text-sm md:text-base text-gray-200 line-clamp-2 sm:line-clamp-3 leading-relaxed font-normal">
+                <p className="text-xs sm:text-sm md:text-base text-gray-100 line-clamp-3 sm:line-clamp-3 leading-relaxed font-normal max-w-lg">
                   {slide.desc}
                 </p>
 

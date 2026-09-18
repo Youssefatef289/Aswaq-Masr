@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabaseService, isSupabaseConfigured } from '../services/supabase';
 import { useToast } from './ToastContext';
 
 const CartContext = createContext();
@@ -93,22 +94,61 @@ export const CartProvider = ({ children }) => {
     localStorage.removeItem('aswaaq_coupon');
   };
 
-  const applyCoupon = (code) => {
-    const cleanCode = code.trim().toUpperCase();
-    if (cleanCode === 'ASWAAQ10') {
-      const newCoupon = { code: 'ASWAAQ10', discountPercent: 10, type: 'percent', label: 'خصم 10%' };
-      setCoupon(newCoupon);
-      addToast('تم تطبيق كود الخصم (10% خصم) بنجاح!', 'success');
-      return { success: true, coupon: newCoupon };
-    } else if (cleanCode === 'MASR50') {
-      const newCoupon = { code: 'MASR50', discountAmount: 50, type: 'fixed', label: 'خصم 50 ج.م' };
-      setCoupon(newCoupon);
-      addToast('تم تطبيق كود الخصم (50 ج.م) بنجاح!', 'success');
-      return { success: true, coupon: newCoupon };
-    } else {
-      addToast('كود الخصم غير صالح أو منتهي الصلاحية', 'error');
+  const applyCoupon = async (code) => {
+    if (!code || !code.trim()) {
+      addToast('يرجى إدخال كود الخصم أولاً', 'error');
+      return { success: false, message: 'كود فارغ' };
+    }
+
+    if (!isSupabaseConfigured) {
+      addToast('لم يتم إعداد Supabase — لا يمكن التحقق من كود الخصم', 'error');
+      return { success: false, message: 'Supabase غير مهيأ' };
+    }
+
+    const couponData = await supabaseService.getCouponByCode(code);
+    if (!couponData) {
+      addToast('كود الخصم غير صالح أو غير موجود', 'error');
       return { success: false, message: 'كود غير صالح' };
     }
+
+    // Validation rules from the coupons table
+    const now = new Date();
+    if (!couponData.isActive) {
+      addToast('كود الخصم غير فعّال', 'error');
+      return { success: false, message: 'كود غير فعّال' };
+    }
+    if (couponData.startsAt && now < new Date(couponData.startsAt)) {
+      addToast('كود الخصم لم يبدأ بعد', 'error');
+      return { success: false, message: 'كود غير متاح بعد' };
+    }
+    if (couponData.expiresAt && now > new Date(couponData.expiresAt)) {
+      addToast('انتهت صلاحية كود الخصم', 'error');
+      return { success: false, message: 'كود منتهي' };
+    }
+    if (
+      couponData.usageLimit > 0 &&
+      couponData.usedCount >= couponData.usageLimit
+    ) {
+      addToast('تم استنفاد عدد استخدامات كود الخصم', 'error');
+      return { success: false, message: 'الحد الأقصى للاستخدام' };
+    }
+    if (couponData.minOrderAmount > 0 && subtotal < couponData.minOrderAmount) {
+      addToast(`الحد الأدنى للطلب لتفعيل هذا الكود هو ${couponData.minOrderAmount} ج.م`, 'error');
+      return { success: false, message: 'الحد الأدنى غير محقق' };
+    }
+
+    const newCoupon = {
+      code: couponData.code,
+      type: couponData.discountType === 'fixed' ? 'fixed' : 'percent',
+      discountPercent: couponData.discountType === 'fixed' ? 0 : Number(couponData.discountValue),
+      discountAmount: couponData.discountType === 'fixed' ? Number(couponData.discountValue) : 0,
+      label: couponData.discountType === 'fixed'
+        ? `خصم ${Number(couponData.discountValue)} ج.م`
+        : `خصم ${Number(couponData.discountValue)}%`
+    };
+    setCoupon(newCoupon);
+    addToast(`تم تطبيق كود الخصم (${newCoupon.label}) بنجاح!`, 'success');
+    return { success: true, coupon: newCoupon };
   };
 
   const removeCoupon = () => {

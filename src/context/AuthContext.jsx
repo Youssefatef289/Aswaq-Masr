@@ -1,116 +1,178 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { supabaseService, isSupabaseConfigured, normalizeProfile } from '../services/supabase';
 import { useToast } from './ToastContext';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const { addToast } = useToast();
-  const [user, setUser] = useState(() => {
-    try {
-      const saved = localStorage.getItem('aswaaq_user');
-      return saved ? JSON.parse(saved) : {
-        id: 'usr-admin-1',
-        name: 'Admin',
-        email: 'admin@aswaqmasr.com',
-        phone: '01012345678',
-        role: 'admin',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-        governorate: 'beni-suef',
-        city: 'بني سويف',
-        address: 'بني سويف، جمهورية مصر العربية'
-      };
-    } catch {
-      return null;
+
+  // user is the normalized public.profiles row (roles ONLY from DB — never from user_metadata)
+  const [user, setUser] = useState(null);
+  const [isLoadingSession, setIsLoadingSession] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  const hydrateUserFromSession = useCallback(async (session) => {
+    if (!session?.user?.id) {
+      setUser(null);
+      setIsAuthenticated(false);
+      return;
     }
-  });
+
+    // IMPORTANT: role is read ONLY from public.profiles (DB). Never trust client-side claims.
+    let profile = await supabaseService.getProfile(session.user.id);
+    if (!profile) {
+      // Profile wasn't created yet (race with trigger) — retry a few times
+      for (let attempt = 0; attempt < 4 && !profile; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        profile = await supabaseService.getProfile(session.user.id);
+      }
+    }
+
+    const normalized = normalizeProfile(profile || {
+      id: session.user.id,
+      full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || '',
+      email: session.user.email,
+      phone: session.user.user_metadata?.phone || '',
+      role: 'customer'
+    });
+
+    setUser(normalized);
+    setIsAuthenticated(true);
+    return normalized;
+  }, []);
 
   useEffect(() => {
-    if (user) {
-      localStorage.setItem('aswaaq_user', JSON.stringify(user));
-    } else {
-      localStorage.removeItem('aswaaq_user');
-    }
-  }, [user]);
-
-  const login = (emailOrUsername, password, role = 'user') => {
-    const cleanInput = (emailOrUsername || '').trim().toLowerCase();
-    
-    // Dedicated Admin Authentication check
-    if (
-      (cleanInput === 'admin@aswaqmasr.com' || cleanInput === 'admin') &&
-      password === 'Admin@AswaqMasr2026'
-    ) {
-      const adminUser = {
-        id: 'usr-admin-1',
-        name: 'Admin',
-        email: 'admin@aswaqmasr.com',
-        phone: '01012345678',
-        role: 'admin',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-        governorate: 'beni-suef',
-        city: 'بني سويف',
-        address: 'بني سويف، جمهورية مصر العربية'
-      };
-      setUser(adminUser);
-      addToast('تم تسجيل دخول مسؤول لوحة التحكم بنجاح! 👑', 'success');
-      return { success: true, user: adminUser };
+    if (!isSupabaseConfigured) {
+      setIsLoadingSession(false);
+      return;
     }
 
-    // Standard User / Fallback Login
-    const newUser = {
-      id: 'usr-' + Date.now(),
-      name: cleanInput.split('@')[0] || 'مستخدم أسواق مصر',
-      email: cleanInput.includes('@') ? cleanInput : `${cleanInput}@aswaqmasr.com`,
-      phone: '010' + Math.floor(10000000 + Math.random() * 90000000),
-      role: role,
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
-      governorate: 'beni-suef',
-      city: 'بني سويف',
-      address: 'بني سويف، جمهورية مصر العربية'
-    };
-    setUser(newUser);
-    addToast(`مرحباً بك مجدداً، ${newUser.name}! 👋`, 'success');
-    return { success: true, user: newUser };
+    // 1) Restore persisted session
+    supabaseService.getSession().then((session) => {
+      hydrateUserFromSession(session).finally(() => setIsLoadingSession(false));
+    });
+
+    // 2) Live auth state changes (login / logout / token refresh)
+    const { unsubscribe } = supabaseService.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        hydrateUserFromSession(session);
+      } else if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        setUser(null);
+        setIsAuthenticated(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [hydrateUserFromSession]);
+
+  const login = async (email, password) => {
+    if (!isSupabaseConfigured) {
+      addToast('لم يتم إعداد Supabase بعد — أضف مفاتيح المشروع في ملف .env', 'error');
+      return { success: false, error: 'Supabase غير مهيأ' };
+    }
+
+    if (!email || !password) {
+      addToast('يرجى إدخال البريد الإلكتروني وكلمة المرور', 'error');
+      return { success: false, error: 'بيانات ناقصة' };
+    }
+
+    const result = await supabaseService.signIn(email, password);
+    if (!result.success) {
+      const message =
+        String(result.error || '').toLowerCase().includes('invalid login')
+          ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة'
+          : result.error || 'تعذر تسجيل الدخول';
+      addToast(message, 'error');
+      return { success: false, error: message };
+    }
+
+    const hydrated = await hydrateUserFromSession(result.session);
+    addToast(`مرحباً بك مجدداً، ${hydrated?.name || 'عميل أسواق مصر'}! 👋`, 'success');
+    return { success: true, user: hydrated };
   };
 
-  const register = (userData) => {
-    const newUser = {
-      id: 'usr-' + Date.now(),
-      name: userData.name,
+  const register = async (userData) => {
+    if (!isSupabaseConfigured) {
+      addToast('لم يتم إعداد Supabase بعد — أضف مفاتيح المشروع في ملف .env', 'error');
+      return { success: false, error: 'Supabase غير مهيأ' };
+    }
+
+    if (!userData.email || !userData.password || !userData.name) {
+      addToast('يرجى ملء جميع الحقول المطلوبة', 'error');
+      return { success: false, error: 'بيانات ناقصة' };
+    }
+
+    if (userData.password.length < 8) {
+      addToast('كلمة المرور يجب أن تكون 8 أحرف على الأقل', 'error');
+      return { success: false, error: 'كلمة المرور قصيرة جداً' };
+    }
+
+    const result = await supabaseService.signUp({
       email: userData.email,
-      phone: userData.phone,
-      role: userData.role || 'user',
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80',
-      governorate: 'beni-suef',
-      city: userData.city || 'بني سويف',
-      address: userData.address || 'بني سويف'
-    };
-    setUser(newUser);
-    addToast('تم إنشاء الحساب بنجاح! أهلاً بك في أسواق مصر 🎉', 'success');
-    return true;
+      password: userData.password,
+      fullName: userData.name,
+      phone: userData.phone
+    });
+
+    if (!result.success) {
+      addToast(result.error || 'تعذر إنشاء الحساب', 'error');
+      return { success: false, error: result.error };
+    }
+
+    let hydrated = null;
+    if (result.session) {
+      hydrated = await hydrateUserFromSession(result.session);
+    }
+
+    addToast(`تم إنشاء الحساب بنجاح! أهلاً بك في أسواق مصر 🎉 (${hydrated?.name || userData.name})`, 'success');
+    return { success: true, user: hydrated, requiresEmailConfirmation: !result.session };
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabaseService.signOut();
     setUser(null);
-    localStorage.removeItem('aswaaq_user');
+    setIsAuthenticated(false);
     addToast('تم تسجيل الخروج بنجاح', 'info');
   };
 
-  const updateProfile = (updatedData) => {
-    setUser((prev) => ({ ...prev, ...updatedData }));
+  const updateProfile = async (updatedData) => {
+    if (!user?.id) return { success: false, error: 'غير مسجل دخول' };
+
+    const saved = await supabaseService.updateProfile(user.id, updatedData);
+    if (!saved) {
+      addToast('تعذر تحديث البيانات', 'error');
+      return { success: false };
+    }
+
+    setUser(normalizeProfile(saved));
     addToast('تم تحديث البيانات بنجاح', 'success');
+    return { success: true, user: normalizeProfile(saved) };
   };
+
+  const resetPassword = async (email) => {
+    return supabaseService.resetPassword(email);
+  };
+
+  const isAdmin = !!user && user.role === 'admin';
+  const isManager = !!user && (user.role === 'admin' || user.role === 'manager');
+  const canManageStore = isAdmin || isManager;
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        isAuthenticated: !!user,
-        isAdmin: user?.role === 'admin',
+        isAuthenticated,
+        isLoadingSession,
+        isAdmin,
+        isManager,
+        canManageStore,
+        isSupabaseConfigured,
         login,
         register,
         logout,
-        updateProfile
+        updateProfile,
+        resetPassword
       }}
     >
       {children}

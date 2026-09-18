@@ -30,11 +30,11 @@
 
 ---
 
-## 🔐 بيانات اعتماد مسؤول لوحة التحكم (Admin Credentials):
+## 🔐 حساب مسؤول لوحة التحكم
 
-- **الرابط:** `/admin` أو تسجيل الدخول من `/login`
-- **اسم المستخدم (Username):** `admin@aswaqmasr.com` (أو `admin`)
-- **كلمة المرور (Password):** `Admin@AswaqMasr2026`
+يُنشأ حساب المسؤول من Supabase Auth ثم تُضبط قيمة `role = 'admin'` في جدول
+`public.profiles` بواسطة مالك المشروع. لا تُحفظ كلمات المرور أو مفاتيح Supabase داخل المستودع.
+التفاصيل الكاملة وخطوات الإنشاء موجودة في [`SUPABASE_SETUP.md`](./SUPABASE_SETUP.md).
 
 ---
 
@@ -48,8 +48,8 @@
 * `categories`: الأقسام والصور والروابط.
 * `brands`: الماركات التجارية والشعارات.
 * `orders`: الطلبات، العناوين، وبيانات العملاء.
-* `users`: المستخدمين وصلاحيات الأدمن.
-* `settings`: إعدادات المتجر والتواصل.
+* `profiles`: المستخدمون وصلاحيات الأدمن.
+* `site_settings`: إعدادات المتجر والتواصل وأهلية واتساب حسب المحافظة.
 
 ### 2. إعداد المتغيرات البيئية (`.env`):
 قم بإنشاء ملف `.env` في المجلد الرئيسي للمشروع وأضف مفاتيح مشروعك في Supabase:
@@ -59,7 +59,7 @@ VITE_SUPABASE_URL=https://your-project-id.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-public-key
 ```
 
-*(يعمل الموقع بنظام Fallback ذكي ومتزامن مع التخزين المحلي في حال عدم ضبط المفاتيح لضمان تجربة فورية متواصلة).*
+لا توجد بيانات كتالوج بديلة داخل الواجهة. عند غياب مفاتيح Supabase يظهر المتجر فارغاً وتتعطل العمليات التي تحتاج قاعدة بيانات بدلاً من إنشاء بيانات وهمية.
 
 ---
 
@@ -97,7 +97,7 @@ aswaaq-masr/
 │   │   ├── home/            # HeroSlider, CategoriesGrid, FeaturedOffers, BrandsSlider
 │   │   └── product/         # ProductCard, ProductGrid, ProductFilter
 │   ├── context/             # AuthContext, CartContext, WishlistContext, AdminDataContext, ToastContext
-│   ├── data/                # Initial Data & Mock Fallbacks (products, categories, brands, governorates)
+│   ├── data/                # خيارات الشحن والمحافظات فقط
 │   ├── layouts/             # MainLayout, AdminLayout, AuthLayout
 │   ├── pages/               # Storefront & Admin Pages
 │   ├── routes/              # AppRoutes.jsx

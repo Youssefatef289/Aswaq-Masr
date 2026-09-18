@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet, NavLink, Link, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, Link, useNavigate, Navigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Package, Layers, Award, Tag, 
   ShoppingBag, Users, Settings, ArrowRight, Menu, X, 
@@ -10,9 +10,14 @@ import { useAdminData } from '../context/AdminDataContext';
 
 export const AdminLayout = () => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, isLoadingSession, isManager } = useAuth();
   const { orders } = useAdminData();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Authorization guard — only admin/manager (role read from public.profiles) may access
+  if (!isLoadingSession && !isManager) {
+    return <Navigate to={user ? '/' : '/login'} replace />;
+  }
 
   const pendingOrdersCount = orders.filter((o) => o.status === 'pending').length;
 
@@ -142,8 +147,8 @@ export const AdminLayout = () => {
               <span className="font-semibold text-gray-200 truncate">{user?.name || 'المدير'}</span>
             </div>
             <button
-              onClick={() => {
-                logout();
+              onClick={async () => {
+                await logout();
                 navigate('/login');
               }}
               className="text-gray-400 hover:text-red-400 p-1"

@@ -64,16 +64,16 @@ export const CartDrawer = ({ isOpen, onClose }) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleApplyCoupon = (e) => {
+  const handleApplyCoupon = async (e) => {
     e.preventDefault();
     if (couponInput.trim()) {
-      applyCoupon(couponInput.trim());
+      await applyCoupon(couponInput.trim());
       setCouponInput('');
     }
   };
 
   // Submit Order inside Drawer
-  const handleSubmitOrder = (e) => {
+  const handleSubmitOrder = async (e) => {
     e?.preventDefault();
 
     if (cartItems.length === 0) {
@@ -91,7 +91,7 @@ export const CartDrawer = ({ isOpen, onClose }) => {
     const selectedDist = beniSuefDistricts.find((d) => d.id === formData.district);
     const districtName = selectedDist?.name || formData.district;
 
-    const newOrder = createOrder({
+    const newOrder = await createOrder({
       customerName: formData.fullName,
       phone: formData.phone,
       governorate: 'بني سويف',
@@ -111,6 +111,11 @@ export const CartDrawer = ({ isOpen, onClose }) => {
         image: item.image
       }))
     });
+
+    if (!newOrder) {
+      setIsSubmitting(false);
+      return;
+    }
 
     setCreatedOrderData(newOrder);
     clearCart();

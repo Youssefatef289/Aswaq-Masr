@@ -1,37 +1,34 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, LogIn, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, LogIn } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const Login = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, isSupabaseConfigured } = useAuth();
 
-  const [usernameOrEmail, setUsernameOrEmail] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (usernameOrEmail && password) {
-      const res = login(usernameOrEmail, password);
-      if (res?.user?.role === 'admin') {
+    setError('');
+    setIsSubmitting(true);
+
+    const res = await login(email, password);
+    setIsSubmitting(false);
+
+    if (res?.success) {
+      if (res.user?.role === 'admin' || res.user?.role === 'manager') {
         navigate('/admin');
       } else {
         navigate('/');
       }
-    }
-  };
-
-  const handleFillAdminCredentials = () => {
-    setUsernameOrEmail('admin@aswaqmasr.com');
-    setPassword('Admin@AswaqMasr2026');
-  };
-
-  const handleAdminQuickLogin = () => {
-    const res = login('admin@aswaqmasr.com', 'Admin@AswaqMasr2026');
-    if (res?.success) {
-      navigate('/admin');
+    } else if (res?.error) {
+      setError(typeof res.error === 'string' ? res.error : 'تعذر تسجيل الدخول');
     }
   };
 
@@ -44,39 +41,30 @@ export const Login = () => {
         </p>
       </div>
 
-      {/* Admin Credentials Info Card */}
-      <div className="p-3.5 bg-red-50/70 border border-brand-red/20 rounded-2xl text-xs space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="font-bold text-brand-darkRed flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-brand-red" />
-            <span>بيانات دخول مسؤول لوحة التحكم (Admin):</span>
-          </span>
-          <button
-            type="button"
-            onClick={handleFillAdminCredentials}
-            className="text-[11px] bg-brand-red text-white px-2.5 py-0.5 rounded-lg font-bold hover:bg-brand-darkRed transition"
-          >
-            تعبئة تلقائية
-          </button>
+      {!isSupabaseConfigured && (
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-800 font-bold">
+          لم يتم إعداد Supabase بعد. أضف VITE_SUPABASE_URL و VITE_SUPABASE_ANON_KEY في ملف .env
         </div>
-        <div className="text-[11px] text-gray-600 font-mono space-y-0.5">
-          <p><strong>Username:</strong> admin@aswaqmasr.com (أو admin)</p>
-          <p><strong>Password:</strong> Admin@AswaqMasr2026</p>
+      )}
+
+      {error && (
+        <div className="p-3 bg-red-50 text-brand-red text-xs font-bold rounded-xl text-center">
+          {error}
         </div>
-      </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-xs font-bold text-gray-700 mb-1.5">
-            اسم المستخدم أو البريد الإلكتروني
+            البريد الإلكتروني
           </label>
           <div className="relative">
             <input
-              type="text"
+              type="email"
               required
-              value={usernameOrEmail}
-              onChange={(e) => setUsernameOrEmail(e.target.value)}
-              placeholder="admin@aswaqmasr.com أو اسم المستخدم"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="name@example.com"
               className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 pr-10 pl-4 text-xs text-gray-900 focus:outline-none focus:border-brand-red focus:bg-white"
             />
             <Mail className="w-4 h-4 text-gray-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
@@ -120,24 +108,13 @@ export const Login = () => {
 
         <button
           type="submit"
-          className="w-full py-3 px-4 bg-brand-red hover:bg-brand-darkRed text-white rounded-xl text-xs sm:text-sm font-black flex items-center justify-center gap-2 shadow-md transition"
+          disabled={isSubmitting}
+          className="w-full py-3 px-4 bg-brand-red hover:bg-brand-darkRed text-white rounded-xl text-xs sm:text-sm font-black flex items-center justify-center gap-2 shadow-md transition disabled:opacity-60"
         >
           <LogIn className="w-4 h-4" />
-          <span>تسجيل الدخول</span>
+          <span>{isSubmitting ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول'}</span>
         </button>
       </form>
-
-      {/* Quick Admin Access Button for evaluator */}
-      <div className="pt-2 border-t border-gray-100">
-        <button
-          onClick={handleAdminQuickLogin}
-          type="button"
-          className="w-full py-2.5 px-4 bg-gray-900 hover:bg-black text-amber-300 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition"
-        >
-          <ShieldCheck className="w-4 h-4 text-amber-400" />
-          <span>دخول سريع كـ (مدير النظام Admin)</span>
-        </button>
-      </div>
 
       <div className="text-center text-xs text-gray-500 pt-2 border-t border-gray-100">
         ليس لديك حساب بعد؟{' '}

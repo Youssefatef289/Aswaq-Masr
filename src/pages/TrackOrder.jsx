@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { 
   Search, CheckCircle2, Clock, PackageCheck, 
   Truck, Home, Phone, MapPin, Calendar, AlertCircle 
 } from 'lucide-react';
 import { Breadcrumbs } from '../components/common/Breadcrumbs';
-import { useAdminData } from '../context/AdminDataContext';
+import { supabaseService } from '../services/supabase';
 import { formatPrice, formatDate } from '../utils/formatters';
 
 const steps = [
@@ -17,22 +17,25 @@ const steps = [
 
 export const TrackOrder = () => {
   const [searchParams] = useSearchParams();
-  const { orders } = useAdminData();
-  const initialOrderId = searchParams.get('id') || 'ASM-10892';
 
-  const [orderQuery, setOrderQuery] = useState(initialOrderId);
-  const [currentOrder, setCurrentOrder] = useState(() => {
-    return orders.find((o) => o.id === initialOrderId) || orders[0] || null;
-  });
+  // Secure tracking: order number + phone (validated via the track_order RPC — never a full table scan)
+  const [orderQuery, setOrderQuery] = useState(searchParams.get('id')?.trim() || '');
+  const [phoneQuery, setPhoneQuery] = useState(searchParams.get('phone')?.trim() || '');
+  const [currentOrder, setCurrentOrder] = useState(null);
+  const [notFound, setNotFound] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
 
-  const handleSearchOrder = (e) => {
+  const handleSearchOrder = async (e) => {
     e.preventDefault();
-    if (orderQuery.trim()) {
-      const found = orders.find(
-        (o) => o.id.toLowerCase() === orderQuery.trim().toLowerCase()
-      );
-      setCurrentOrder(found || null);
-    }
+    if (!orderQuery.trim() || !phoneQuery.trim()) return;
+
+    setIsSearching(true);
+    setNotFound(false);
+    const found = await supabaseService.trackOrder(orderQuery, phoneQuery);
+    setIsSearching(false);
+
+    setCurrentOrder(found || null);
+    setNotFound(!found);
   };
 
   const getStepIndex = (status) => {
@@ -63,22 +66,37 @@ export const TrackOrder = () => {
           </p>
         </div>
 
-        <form onSubmit={handleSearchOrder} className="flex gap-2">
-          <input
-            type="text"
-            value={orderQuery}
-            onChange={(e) => setOrderQuery(e.target.value)}
-            placeholder="مثال: ASM-10892"
-            className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs font-mono uppercase focus:outline-none focus:border-brand-red focus:bg-white"
-          />
+        <form onSubmit={handleSearchOrder} className="flex flex-col sm:flex-row gap-2">
+          <div className="flex-1 relative">
+            <input
+              type="text"
+              value={orderQuery}
+              onChange={(e) => setOrderQuery(e.target.value)}
+              placeholder="رقم الطلب — مثال: ASM-10892"
+              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs font-mono uppercase focus:outline-none focus:border-brand-red focus:bg-white"
+            />
+          </div>
+          <div className="flex-1 relative">
+            <input
+              type="tel"
+              value={phoneQuery}
+              onChange={(e) => setPhoneQuery(e.target.value)}
+              placeholder="رقم الهاتف المسجل بالطلب — 01012345678"
+              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs font-mono focus:outline-none focus:border-brand-red focus:bg-white"
+            />
+          </div>
           <button
             type="submit"
-            className="bg-brand-red hover:bg-brand-darkRed text-white px-6 py-3 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md"
+            disabled={isSearching}
+            className="bg-brand-red hover:bg-brand-darkRed text-white px-6 py-3 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md disabled:opacity-60"
           >
             <Search className="w-4 h-4" />
-            <span>تتبع</span>
+            <span>{isSearching ? 'جاري البحث...' : 'تتبع'}</span>
           </button>
         </form>
+        <p className="text-[11px] text-gray-400 text-center mt-1">
+          للتتبع الآمن أدخل رقم الطلب مع رقم الهاتف المستخدم عند الطلب.
+        </p>
       </div>
 
       {/* Order Status Display */}
@@ -184,12 +202,20 @@ export const TrackOrder = () => {
             </div>
           </div>
         </div>
-      ) : (
+      ) : notFound ? (
         <div className="bg-white rounded-3xl border border-gray-200 p-12 text-center max-w-md mx-auto space-y-3">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto" />
           <h3 className="text-base font-bold text-gray-800">لم يتم العثور على طلب بهذا الرقم</h3>
           <p className="text-xs text-gray-500">
-            تأكد من كتابة رقم الطلب بالشكل الصحيح أو تواصل مع خدمة العملاء على 19888.
+            تأكد من كتابة رقم الطلب ورقم الهاتف بالشكل الصحيح أو تواصل مع خدمة العملاء.
+          </p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-3xl border border-gray-200 p-12 text-center max-w-md mx-auto space-y-3">
+          <Truck className="w-12 h-12 text-brand-red mx-auto" />
+          <h3 className="text-base font-bold text-gray-800">أدخل رقم الطلب ورقم الهاتف للمتابعة</h3>
+          <p className="text-xs text-gray-500">
+            ستظهر لك حالة الشحنة الحالية ومسار التوصيل فور إتمام البحث.
           </p>
         </div>
       )}

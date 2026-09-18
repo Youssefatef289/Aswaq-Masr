@@ -6,18 +6,58 @@ import {
   AlertCircle, ChevronLeft, Eye, Plus 
 } from 'lucide-react';
 import { useAdminData } from '../../context/AdminDataContext';
-import { formatPrice, formatDate } from '../../utils/formatters';
+import { formatPrice } from '../../utils/formatters';
+
+const WEEK_LABELS = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
 
 export const Dashboard = () => {
-  const { products, categories, orders } = useAdminData();
+  const { products, categories, offers, orders, profiles } = useAdminData();
 
-  const totalSales = orders.reduce((acc, order) => acc + (order.total || 0), 0) + 48250;
-  const totalOrdersCount = orders.length + 84;
+  // Real statistics derived from database records — no hardcoded numbers
+  const totalSales = orders.reduce((acc, order) => acc + (Number(order.total) || 0), 0);
+  const totalOrdersCount = orders.length;
+  const deliveredOrders = orders.filter((o) => o.status === 'delivered').length;
+  const pendingOrdersCount = orders.filter((o) => o.status === 'pending').length;
   const totalProductsCount = products.length;
-  const totalCustomersCount = 152;
+  const totalCustomersCount = profiles.filter((p) => p.role === 'customer').length;
+
+  // Real last-7-days sales chart
+  const today = new Date();
+  const buckets = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    buckets.push({ key: d.toDateString(), label: WEEK_LABELS[d.getDay()], total: 0 });
+  }
+  orders.forEach((o) => {
+    const od = o.date ? new Date(o.date) : null;
+    if (!od) return;
+    const bucket = buckets.find((b) => b.key === od.toDateString());
+    if (bucket) bucket.total += Number(o.total) || 0;
+  });
+  const maxTotal = Math.max(...buckets.map((b) => b.total), 1);
+  const weeklyChart = buckets.map((b) => ({
+    day: b.label,
+    value: maxTotal > 0 ? Math.max(8, Math.round((b.total / maxTotal) * 100)) : 0,
+    amount: formatPrice(b.total)
+  }));
 
   const recentOrders = orders.slice(0, 5);
   const topProducts = products.filter((p) => p.isBestSeller).slice(0, 4);
+
+  // Real orders status distribution
+  const statusDistribution = [
+    { label: 'تم التوصيل بنجاح', key: 'delivered', color: 'bg-emerald-500' },
+    { label: 'في الطريق للتسليم', key: 'out-for-delivery', color: 'bg-blue-500' },
+    { label: 'جاري التجهيز', key: 'preparing', color: 'bg-purple-500' },
+    { label: 'تم التأكيد', key: 'confirmed', color: 'bg-cyan-500' },
+    { label: 'قيد الانتظار', key: 'pending', color: 'bg-amber-500' },
+    { label: 'ملغي', key: 'cancelled', color: 'bg-red-500' }
+  ].map((s) => {
+    const count = orders.filter((o) => o.status === s.key).length;
+    const percent = orders.length > 0 ? Math.round((count / orders.length) * 100) : 0;
+    return { label: s.label, count, color: s.color, percent: `${percent}%` };
+  }).filter((s) => s.count > 0);
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -51,9 +91,9 @@ export const Dashboard = () => {
           <div>
             <span className="text-xs font-bold text-gray-400 block mb-1">إجمالي المبيعات</span>
             <span className="text-xl font-black text-gray-900 block font-mono">{formatPrice(totalSales)}</span>
-            <div className="flex items-center gap-1 text-[11px] text-emerald-600 font-bold mt-1">
-              <ArrowUpRight className="w-3.5 h-3.5" />
-              <span>+18.4% هذا الشهر</span>
+            <div className="flex items-center gap-1 text-[11px] text-gray-400 font-bold mt-1">
+              <TrendingUp className="w-3.5 h-3.5" />
+              <span>حسب الطلبات الفعلية</span>
             </div>
           </div>
           <div className="w-12 h-12 rounded-xl bg-red-50 text-brand-red flex items-center justify-center shrink-0">
@@ -66,9 +106,15 @@ export const Dashboard = () => {
           <div>
             <span className="text-xs font-bold text-gray-400 block mb-1">إجمالي الطلبات</span>
             <span className="text-xl font-black text-gray-900 block font-mono">{totalOrdersCount} طلب</span>
-            <div className="flex items-center gap-1 text-[11px] text-emerald-600 font-bold mt-1">
-              <ArrowUpRight className="w-3.5 h-3.5" />
-              <span>+12.1% نمو أسبوعي</span>
+            <div className="flex items-center gap-1 text-[11px] text-gray-400 font-bold mt-1">
+              {pendingOrdersCount > 0 ? (
+                <>
+                  <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
+                  <span>{pendingOrdersCount} طلب قيد الانتظار</span>
+                </>
+              ) : (
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              )}
             </div>
           </div>
           <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
@@ -91,11 +137,11 @@ export const Dashboard = () => {
         {/* Total Customers */}
         <div className="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs flex items-center justify-between">
           <div>
-            <span className="text-xs font-bold text-gray-400 block mb-1">إجمالي العملاء</span>
+            <span className="text-xs font-bold text-gray-400 block mb-1">إجمالي العملاء المسجلين</span>
             <span className="text-xl font-black text-gray-900 block font-mono">{totalCustomersCount} عميل</span>
             <div className="flex items-center gap-1 text-[11px] text-emerald-600 font-bold mt-1">
               <ArrowUpRight className="w-3.5 h-3.5" />
-              <span>+9 عملاء جدد اليوم</span>
+              <span>{deliveredOrders} طلب تم توصيله</span>
             </div>
           </div>
           <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
@@ -122,15 +168,7 @@ export const Dashboard = () => {
 
           {/* SVG Visual Chart */}
           <div className="h-64 w-full flex items-end justify-between gap-2 sm:gap-4 pt-8 pb-2 px-2 border-b border-gray-100">
-            {[
-              { day: 'السبت', value: 75, amount: '7,500 ج.م' },
-              { day: 'الأحد', value: 60, amount: '6,000 ج.م' },
-              { day: 'الإثنين', value: 90, amount: '9,000 ج.م' },
-              { day: 'الثلاثاء', value: 80, amount: '8,000 ج.م' },
-              { day: 'الأربعاء', value: 95, amount: '9,500 ج.م' },
-              { day: 'الخميس', value: 100, amount: '12,400 ج.م' },
-              { day: 'الجمعة', value: 85, amount: '8,500 ج.م' }
-            ].map((col, idx) => (
+            {weeklyChart.map((col, idx) => (
               <div key={idx} className="flex-1 flex flex-col items-center gap-2 group relative">
                 {/* Tooltip on hover */}
                 <div className="absolute -top-10 bg-gray-900 text-white text-[10px] font-bold py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition pointer-events-none whitespace-nowrap z-20">
@@ -156,12 +194,7 @@ export const Dashboard = () => {
           </div>
 
           <div className="space-y-3 pt-2">
-            {[
-              { label: 'تم التوصيل بنجاح', count: 68, color: 'bg-emerald-500', percent: '65%' },
-              { label: 'في الطريق للتسليم', count: 18, color: 'bg-blue-500', percent: '18%' },
-              { label: 'جاري التجهيز', count: 12, color: 'bg-amber-500', percent: '12%' },
-              { label: 'قيد الانتظار', count: 5, color: 'bg-red-500', percent: '5%' }
-            ].map((item, i) => (
+            {statusDistribution.length > 0 ? statusDistribution.map((item, i) => (
               <div key={i} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-bold text-gray-700">{item.label}</span>
@@ -171,7 +204,11 @@ export const Dashboard = () => {
                   <div style={{ width: item.percent }} className={`h-full ${item.color} rounded-full`} />
                 </div>
               </div>
-            ))}
+            )) : (
+              <div className="text-center py-6 text-gray-400 text-xs">
+                لا توجد طلبات بعد — تظهر التوزيعات فور ورود أول طلب.
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -208,7 +245,7 @@ export const Dashboard = () => {
               <tbody className="divide-y divide-gray-100">
                 {recentOrders.map((order) => (
                   <tr key={order.id} className="hover:bg-gray-50/60 transition">
-                    <td className="py-3 font-bold font-mono text-brand-red">{order.id}</td>
+                    <td className="py-3 font-bold font-mono text-brand-red">{order.orderNumber || order.id}</td>
                     <td className="py-3 font-semibold text-gray-800">{order.customerName}</td>
                     <td className="py-3 text-gray-500">{order.governorate}</td>
                     <td className="py-3 font-bold text-gray-900">{formatPrice(order.total)}</td>

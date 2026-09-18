@@ -4,13 +4,20 @@ import {
   CheckCircle, Truck, Package, Calendar, MapPin, 
   Phone, ArrowLeft, Home, ShoppingBag 
 } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
+import { useAdminData } from '../context/AdminDataContext';
 import confetti from 'canvas-confetti';
 import { formatPrice, formatDate } from '../utils/formatters';
 
 export const OrderConfirmation = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { settings } = useAdminData();
   const order = location.state?.order;
+  const canUseWhatsApp = order?.governorate && (settings?.whatsappGovernorates || []).includes(order.governorate);
+  const whatsappMessage = order
+    ? `تأكيد الطلب ${order.orderNumber || order.id} باسم ${order.customerName} بإجمالي ${formatPrice(order.total)}`
+    : '';
 
   useEffect(() => {
     // Trigger celebratory confetti
@@ -62,7 +69,7 @@ export const OrderConfirmation = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-4 border-b border-gray-200 text-xs">
             <div>
               <span className="text-gray-500 block mb-0.5">رقم الطلب (Order ID):</span>
-              <span className="text-sm font-black text-brand-red font-mono">{order.id}</span>
+              <span className="text-sm font-black text-brand-red font-mono">{order.orderNumber || order.id}</span>
             </div>
             <div>
               <span className="text-gray-500 block mb-0.5">اسم العميل:</span>
@@ -129,6 +136,17 @@ export const OrderConfirmation = () => {
             <Home className="w-4 h-4" />
             <span>العودة للرئيسية</span>
           </Link>
+          {canUseWhatsApp && (
+            <a
+              href={`https://wa.me/${(settings.whatsapp || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(whatsappMessage)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-lg transition"
+            >
+              <MessageCircle className="w-4 h-4 fill-white" />
+              <span>تأكيد الطلب عبر واتساب</span>
+            </a>
+          )}
         </div>
       </div>
     </div>

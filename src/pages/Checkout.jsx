@@ -43,6 +43,7 @@ export const Checkout = () => {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const canUseWhatsApp = (settings?.whatsappGovernorates || []).includes('بني سويف');
 
   // When user selects a district in Beni Suef, update shipping cost
   const handleDistrictChange = (districtId) => {
@@ -58,7 +59,7 @@ export const Checkout = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmitOrder = (e) => {
+  const handleSubmitOrder = async (e) => {
     if (e) e.preventDefault();
 
     if (cartItems.length === 0) {
@@ -77,7 +78,7 @@ export const Checkout = () => {
     const selectedDist = beniSuefDistricts.find((d) => d.id === formData.district);
     const distName = selectedDist?.name || formData.district;
 
-    const newOrder = createOrder({
+    const newOrder = await createOrder({
       customerName: formData.fullName,
       phone: formData.phone,
       alternatePhone: formData.alternatePhone,
@@ -99,6 +100,11 @@ export const Checkout = () => {
       }))
     });
 
+    if (!newOrder) {
+      setIsSubmitting(false);
+      return;
+    }
+
     // Clear cart and go to confirmation
     clearCart();
     setIsSubmitting(false);
@@ -106,6 +112,10 @@ export const Checkout = () => {
   };
 
   const handleWhatsAppOrder = () => {
+    if (!canUseWhatsApp) {
+      addToast('الطلب عبر الواتساب غير متاح لهذه المحافظة حالياً', 'info');
+      return;
+    }
     if (!formData.fullName.trim() || !formData.phone.trim() || !formData.address.trim()) {
       addToast('يرجى ملء الاسم والهاتف والعنوان أولاً قبل فتح الواتساب', 'error');
       return;
@@ -423,14 +433,16 @@ ${itemsText}
 
             {/* Action Buttons: WhatsApp Order + Standard COD Confirm */}
             <div className="space-y-2.5 pt-2">
-              <button
-                type="button"
-                onClick={handleWhatsAppOrder}
-                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition transform active:scale-98"
-              >
-                <MessageCircle className="w-5 h-5 fill-white" />
-                <span>الطلب المباشر عبر الواتساب (WhatsApp)</span>
-              </button>
+              {canUseWhatsApp && (
+                <button
+                  type="button"
+                  onClick={handleWhatsAppOrder}
+                  className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition transform active:scale-98"
+                >
+                  <MessageCircle className="w-5 h-5 fill-white" />
+                  <span>الطلب المباشر عبر الواتساب (WhatsApp)</span>
+                </button>
+              )}
 
               <button
                 type="button"

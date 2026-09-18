@@ -39,7 +39,8 @@ export const Products = () => {
           !query ||
           p.name.toLowerCase().includes(query) ||
           p.brandName.toLowerCase().includes(query) ||
-          p.categoryName.toLowerCase().includes(query);
+          p.categoryName.toLowerCase().includes(query) ||
+          p.subcategory?.toLowerCase().includes(query);
 
         const matchesCategory =
           selectedCategory === 'all' || p.categoryId === selectedCategory;

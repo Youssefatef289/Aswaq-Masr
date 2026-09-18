@@ -1,274 +1,297 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { initialProducts } from '../data/products';
-import { initialCategories } from '../data/categories';
-import { initialBrands } from '../data/brands';
-import { initialOffers } from '../data/offers';
-import { initialOrders } from '../data/orders';
-import { supabaseService, isSupabaseConfigured } from '../services/supabase';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import {
+  supabaseService,
+  isSupabaseConfigured,
+  normalizeProduct,
+  normalizeCategory,
+  normalizeBrand,
+  normalizeOffer,
+  normalizeOrder
+} from '../services/supabase';
 import { useToast } from './ToastContext';
 
 const AdminDataContext = createContext();
 
+const DEFAULT_SETTINGS = {
+  storeName: 'أسواق مصر',
+  tagline: '',
+  phone: '',
+  whatsapp: '',
+  email: '',
+  address: '',
+  facebook: '',
+  instagram: '',
+  freeShippingMin: 0,
+  defaultDeliveryFee: 0,
+  whatsappGovernorates: ['بني سويف'],
+  enableCod: true,
+  enableCard: true,
+  taxRate: 0
+};
+
 export const AdminDataProvider = ({ children }) => {
   const { addToast } = useToast();
 
-  // Products state
-  const [products, setProducts] = useState(() => {
-    try {
-      const saved = localStorage.getItem('aswaaq_products');
-      return saved ? JSON.parse(saved) : initialProducts;
-    } catch {
-      return initialProducts;
-    }
-  });
+  // All data comes from Supabase. States start EMPTY — no mock data, no localStorage fallback.
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [brands, setBrands] = useState([]);
+  const [offers, setOffers] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [profiles, setProfiles] = useState([]);
+  const [settings, setSettings] = useState({ ...DEFAULT_SETTINGS });
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Categories state
-  const [categories, setCategories] = useState(() => {
-    try {
-      const saved = localStorage.getItem('aswaaq_categories');
-      return saved ? JSON.parse(saved) : initialCategories;
-    } catch {
-      return initialCategories;
-    }
-  });
+  // Derive real product counts (replaces hardcoded productCount from mock data)
+  const categoriesWithCounts = categories.map((cat) => ({
+    ...cat,
+    productCount: products.filter((p) => p.category_id === cat.id).length
+  }));
+  const brandsWithCounts = brands.map((br) => ({
+    ...br,
+    productCount: products.filter((p) => p.brand_id === br.id).length
+  }));
 
-  // Brands state
-  const [brands, setBrands] = useState(() => {
-    try {
-      const saved = localStorage.getItem('aswaaq_brands');
-      return saved ? JSON.parse(saved) : initialBrands;
-    } catch {
-      return initialBrands;
+  const refreshAll = useCallback(async () => {
+    if (!isSupabaseConfigured) {
+      setIsLoaded(true);
+      return;
     }
-  });
+    setIsLoading(true);
 
-  // Offers state
-  const [offers, setOffers] = useState(() => {
-    try {
-      const saved = localStorage.getItem('aswaaq_offers');
-      return saved ? JSON.parse(saved) : initialOffers;
-    } catch {
-      return initialOffers;
-    }
-  });
+    const [remoteProducts, remoteCategories, remoteBrands, remoteOffers, remoteOrders, remoteProfiles, remoteSettings] =
+      await Promise.all([
+        supabaseService.getProducts(),
+        supabaseService.getCategories(),
+        supabaseService.getBrands(),
+        supabaseService.getOffers(),
+        supabaseService.getOrders(),
+        supabaseService.getProfiles(),
+        supabaseService.getSettings()
+      ]);
 
-  // Orders state
-  const [orders, setOrders] = useState(() => {
-    try {
-      const saved = localStorage.getItem('aswaaq_orders');
-      return saved ? JSON.parse(saved) : initialOrders;
-    } catch {
-      return initialOrders;
-    }
-  });
+    const loadedCategories = Array.isArray(remoteCategories)
+      ? remoteCategories.map(normalizeCategory).filter(Boolean)
+      : [];
+    const loadedBrands = Array.isArray(remoteBrands)
+      ? remoteBrands.map(normalizeBrand).filter(Boolean)
+      : [];
 
-  // Store Settings state
-  const [settings, setSettings] = useState(() => {
-    try {
-      const saved = localStorage.getItem('aswaaq_settings');
-      return saved ? JSON.parse(saved) : {
-        storeName: 'أسواق مصر',
-        tagline: 'كل احتياجات بيتك في بني سويف بأفضل سعر وأسرع توصيل',
-        phone: '19888',
-        whatsapp: '+201012345678',
-        email: 'info@aswaqmasr.com',
-        address: 'بني سويف - شارع عبد السلام عارف - بجوار البنك الأهلي',
-        facebook: 'https://facebook.com/aswaqmasr',
-        instagram: 'https://instagram.com/aswaqmasr',
-        freeShippingMin: 500,
-        defaultDeliveryFee: 20,
-        enableCod: true,
-        enableCard: true,
-        taxRate: 14
-      };
-    } catch {
-      return {
-        storeName: 'أسواق مصر',
-        tagline: 'كل احتياجات بيتك في بني سويف بأفضل سعر وأسرع توصيل',
-        phone: '19888',
-        whatsapp: '+201012345678',
-        email: 'info@aswaqmasr.com',
-        address: 'بني سويف - شارع عبد السلام عارف - بجوار البنك الأهلي',
-        facebook: 'https://facebook.com/aswaqmasr',
-        instagram: 'https://instagram.com/aswaqmasr',
-        freeShippingMin: 500,
-        defaultDeliveryFee: 20,
-        enableCod: true,
-        enableCard: true,
-        taxRate: 14
-      };
+    if (Array.isArray(remoteProducts)) {
+      setProducts(remoteProducts.map((product) => normalizeProduct(product, loadedCategories, loadedBrands)).filter(Boolean));
     }
-  });
+    if (Array.isArray(remoteCategories)) {
+      setCategories(loadedCategories);
+    }
+    if (Array.isArray(remoteBrands)) {
+      setBrands(loadedBrands);
+    }
+    if (Array.isArray(remoteOffers)) {
+      setOffers(remoteOffers.map(normalizeOffer).filter(Boolean));
+    }
+    if (Array.isArray(remoteOrders)) {
+      setOrders(remoteOrders.map(normalizeOrder).filter(Boolean));
+    }
+    if (Array.isArray(remoteProfiles)) {
+      setProfiles(remoteProfiles);
+    }
+    if (remoteSettings) {
+      setSettings((prev) => ({ ...prev, ...remoteSettings }));
+    }
 
-  // Supabase Initial Sync on mount if configured
-  useEffect(() => {
-    if (isSupabaseConfigured) {
-      supabaseService.getProducts().then((remoteProducts) => {
-        if (remoteProducts && remoteProducts.length > 0) setProducts(remoteProducts);
-      });
-      supabaseService.getCategories().then((remoteCategories) => {
-        if (remoteCategories && remoteCategories.length > 0) setCategories(remoteCategories);
-      });
-      supabaseService.getBrands().then((remoteBrands) => {
-        if (remoteBrands && remoteBrands.length > 0) setBrands(remoteBrands);
-      });
-      supabaseService.getOrders().then((remoteOrders) => {
-        if (remoteOrders && remoteOrders.length > 0) setOrders(remoteOrders);
-      });
-      supabaseService.getSettings().then((remoteSettings) => {
-        if (remoteSettings) setSettings(prev => ({ ...prev, ...remoteSettings }));
-      });
-    }
+    setIsLoading(false);
+    setIsLoaded(true);
   }, []);
 
-  // Sync to localStorage
+  // Initial sync on mount — Supabase is the single source of truth
   useEffect(() => {
-    localStorage.setItem('aswaaq_products', JSON.stringify(products));
-  }, [products]);
+    refreshAll();
+  }, [refreshAll]);
 
-  useEffect(() => {
-    localStorage.setItem('aswaaq_categories', JSON.stringify(categories));
-  }, [categories]);
-
-  useEffect(() => {
-    localStorage.setItem('aswaaq_brands', JSON.stringify(brands));
-  }, [brands]);
-
-  useEffect(() => {
-    localStorage.setItem('aswaaq_offers', JSON.stringify(offers));
-  }, [offers]);
-
-  useEffect(() => {
-    localStorage.setItem('aswaaq_orders', JSON.stringify(orders));
-  }, [orders]);
-
-  useEffect(() => {
-    localStorage.setItem('aswaaq_settings', JSON.stringify(settings));
-  }, [settings]);
-
-  // Product Operations
+  // ----------------------------------------------------------------------------
+  // Products
+  // ----------------------------------------------------------------------------
   const addProduct = async (productData) => {
-    const newProduct = {
-      ...productData,
-      id: 'prod-' + Date.now(),
-      rating: productData.rating || 5.0,
-      reviewsCount: 0,
-      isFeatured: !!productData.isFeatured,
-      isBestSeller: !!productData.isBestSeller,
-      isNew: true,
-      images: productData.images?.length > 0 ? productData.images : [productData.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80']
-    };
-
-    setProducts((prev) => [newProduct, ...prev]);
-    supabaseService.addProduct(newProduct);
-    addToast(`تمت إضافة المنتج "${newProduct.name}" بنجاح`, 'success');
-    return newProduct;
+    if (!isSupabaseConfigured) return null;
+    const created = await supabaseService.addProduct(productData);
+    if (!created) {
+      addToast('تعذر إضافة المنتج (تحقق من صلاحيات المشرف واتصال Supabase)', 'error');
+      return null;
+    }
+    const normalized = normalizeProduct(created);
+    setProducts((prev) => [normalized, ...prev]);
+    addToast(`تمت إضافة المنتج "${normalized.name}" بنجاح`, 'success');
+    return normalized;
   };
 
   const updateProduct = async (id, updatedFields) => {
-    setProducts((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, ...updatedFields } : item))
-    );
-    supabaseService.updateProduct(id, updatedFields);
-    addToast('تم تحديث بيانات المنتج بنجاح', 'success');
+    const updated = await supabaseService.updateProduct(id, updatedFields);
+    if (updated) {
+      setProducts((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, ...updatedFields } : p))
+      );
+      addToast('تم تحديث بيانات المنتج بنجاح', 'success');
+    } else {
+      addToast('تعذر تحديث المنتج', 'error');
+    }
   };
 
   const deleteProduct = async (id) => {
-    setProducts((prev) => prev.filter((item) => item.id !== id));
-    supabaseService.deleteProduct(id);
-    addToast('تم حذف المنتج بنجاح', 'info');
+    const ok = await supabaseService.deleteProduct(id);
+    if (ok) {
+      setProducts((prev) => prev.filter((p) => p.id !== id));
+      addToast('تم حذف المنتج بنجاح', 'info');
+    } else {
+      addToast('تعذر حذف المنتج', 'error');
+    }
   };
 
-  // Category Operations
+  // ----------------------------------------------------------------------------
+  // Categories
+  // ----------------------------------------------------------------------------
   const addCategory = async (categoryData) => {
-    const newCategory = {
-      ...categoryData,
-      id: categoryData.id || 'cat-' + Date.now(),
-      productCount: 0
-    };
-    setCategories((prev) => [...prev, newCategory]);
-    supabaseService.addCategory(newCategory);
-    addToast(`تمت إضافة القسم "${newCategory.name}" بنجاح`, 'success');
+    if (!isSupabaseConfigured) return null;
+    const created = await supabaseService.addCategory(categoryData);
+    if (!created) {
+      addToast('تعذر إضافة القسم', 'error');
+      return null;
+    }
+    const normalized = normalizeCategory(created);
+    setCategories((prev) => [...prev, normalized]);
+    addToast(`تمت إضافة القسم "${normalized.name}" بنجاح`, 'success');
+    return normalized;
   };
 
   const updateCategory = async (id, updatedFields) => {
-    setCategories((prev) =>
-      prev.map((cat) => (cat.id === id ? { ...cat, ...updatedFields } : cat))
-    );
-    supabaseService.updateCategory(id, updatedFields);
-    addToast('تم تحديث القسم بنجاح', 'success');
+    const updated = await supabaseService.updateCategory(id, updatedFields);
+    if (updated) {
+      setCategories((prev) =>
+        prev.map((cat) => (cat.id === id ? { ...cat, ...updatedFields } : cat))
+      );
+      addToast('تم تحديث القسم بنجاح', 'success');
+    } else {
+      addToast('تعذر تحديث القسم', 'error');
+    }
   };
 
   const deleteCategory = async (id) => {
-    setCategories((prev) => prev.filter((cat) => cat.id !== id));
-    supabaseService.deleteCategory(id);
-    addToast('تم حذف القسم بنجاح', 'info');
+    const ok = await supabaseService.deleteCategory(id);
+    if (ok) {
+      setCategories((prev) => prev.filter((cat) => cat.id !== id));
+      addToast('تم حذف القسم بنجاح', 'info');
+    } else {
+      addToast('تعذر حذف القسم', 'error');
+    }
   };
 
-  // Brand Operations
+  // ----------------------------------------------------------------------------
+  // Brands
+  // ----------------------------------------------------------------------------
   const addBrand = async (brandData) => {
-    const newBrand = {
-      ...brandData,
-      id: brandData.id || 'brand-' + Date.now(),
-      productCount: 0
-    };
-    setBrands((prev) => [...prev, newBrand]);
-    supabaseService.addBrand(newBrand);
-    addToast(`تمت إضافة الماركة "${newBrand.name}" بنجاح`, 'success');
+    if (!isSupabaseConfigured) return null;
+    const created = await supabaseService.addBrand(brandData);
+    if (!created) {
+      addToast('تعذر إضافة الماركة', 'error');
+      return null;
+    }
+    const normalized = normalizeBrand(created);
+    setBrands((prev) => [...prev, normalized]);
+    addToast(`تمت إضافة الماركة "${normalized.name}" بنجاح`, 'success');
+    return normalized;
   };
 
   const updateBrand = async (id, updatedFields) => {
-    setBrands((prev) =>
-      prev.map((b) => (b.id === id ? { ...b, ...updatedFields } : b))
-    );
-    supabaseService.updateBrand(id, updatedFields);
-    addToast('تم تحديث بيانات البراند بنجاح', 'success');
+    const updated = await supabaseService.updateBrand(id, updatedFields);
+    if (updated) {
+      setBrands((prev) =>
+        prev.map((b) => (b.id === id ? { ...b, ...updatedFields } : b))
+      );
+      addToast('تم تحديث بيانات البراند بنجاح', 'success');
+    } else {
+      addToast('تعذر تحديث البراند', 'error');
+    }
   };
 
   const deleteBrand = async (id) => {
-    setBrands((prev) => prev.filter((b) => b.id !== id));
-    supabaseService.deleteBrand(id);
-    addToast('تم حذف البراند بنجاح', 'info');
+    const ok = await supabaseService.deleteBrand(id);
+    if (ok) {
+      setBrands((prev) => prev.filter((b) => b.id !== id));
+      addToast('تم حذف البراند بنجاح', 'info');
+    } else {
+      addToast('تعذر حذف البراند', 'error');
+    }
   };
 
-  // Offer Operations
-  const addOffer = (offerData) => {
-    const newOffer = {
-      ...offerData,
-      id: 'offer-' + Date.now()
-    };
-    setOffers((prev) => [...prev, newOffer]);
-    addToast(`تمت إضافة العرض "${newOffer.title}" بنجاح`, 'success');
+  // ----------------------------------------------------------------------------
+  // Offers
+  // ----------------------------------------------------------------------------
+  const addOffer = async (offerData) => {
+    if (!isSupabaseConfigured) return null;
+    const created = await supabaseService.addOffer(offerData);
+    if (!created) {
+      addToast('تعذر إضافة العرض', 'error');
+      return null;
+    }
+    const normalized = normalizeOffer(created);
+    setOffers((prev) => [...prev, normalized]);
+    addToast(`تمت إضافة العرض "${normalized.title}" بنجاح`, 'success');
+    return normalized;
   };
 
-  const updateOffer = (id, updatedFields) => {
-    setOffers((prev) =>
-      prev.map((off) => (off.id === id ? { ...off, ...updatedFields } : off))
-    );
-    addToast('تم تحديث العرض بنجاح', 'success');
+  const updateOffer = async (id, updatedFields) => {
+    const updated = await supabaseService.updateOffer(id, updatedFields);
+    if (updated) {
+      setOffers((prev) =>
+        prev.map((off) => (off.id === id ? { ...off, ...updatedFields } : off))
+      );
+      addToast('تم تحديث العرض بنجاح', 'success');
+    } else {
+      addToast('تعذر تحديث العرض', 'error');
+    }
   };
 
-  const deleteOffer = (id) => {
-    setOffers((prev) => prev.filter((off) => off.id !== id));
-    addToast('تم حذف العرض بنجاح', 'info');
+  const deleteOffer = async (id) => {
+    const ok = await supabaseService.deleteOffer(id);
+    if (ok) {
+      setOffers((prev) => prev.filter((off) => off.id !== id));
+      addToast('تم حذف العرض بنجاح', 'info');
+    } else {
+      addToast('تعذر حذف العرض', 'error');
+    }
   };
 
-  // Order Operations
-  const createOrder = (orderData) => {
+  // ----------------------------------------------------------------------------
+  // Orders
+  // ----------------------------------------------------------------------------
+  const createOrder = async (orderData) => {
     const orderNumber = 'ASM-' + Math.floor(10000 + Math.random() * 90000);
-    const newOrder = {
-      id: orderNumber,
+    const newOrderPayload = {
+      orderNumber,
       date: new Date().toISOString(),
       status: 'pending',
       statusLabel: 'قيد الانتظار',
       ...orderData
     };
-    setOrders((prev) => [newOrder, ...prev]);
-    supabaseService.createOrder(newOrder);
-    return newOrder;
+
+    if (!isSupabaseConfigured) {
+      // No backend configured — never fabricate a fake order locally.
+      addToast('لم يتم إعداد Supabase — لا يمكن تأكيد الطلب', 'error');
+      return null;
+    }
+
+    const created = await supabaseService.createOrder(newOrderPayload);
+    if (!created) {
+      addToast('تعذر إرسال الطلب، حاول مرة أخرى', 'error');
+      return null;
+    }
+
+    const normalized = normalizeOrder(created);
+    setOrders((prev) => [normalized, ...prev]);
+    return normalized;
   };
 
-  const updateOrderStatus = (orderId, newStatus) => {
+  const updateOrderStatus = async (orderId, newStatus) => {
     const statusLabels = {
       pending: 'قيد الانتظار',
       confirmed: 'تم التأكيد',
@@ -278,22 +301,57 @@ export const AdminDataProvider = ({ children }) => {
       cancelled: 'تم الإلغاء'
     };
 
-    setOrders((prev) =>
-      prev.map((ord) =>
-        ord.id === orderId
-          ? { ...ord, status: newStatus, statusLabel: statusLabels[newStatus] || newStatus }
-          : ord
-      )
-    );
-    supabaseService.updateOrderStatus(orderId, newStatus);
-    addToast(`تم تغيير حالة الطلب ${orderId} إلى: ${statusLabels[newStatus]}`, 'success');
+    const updated = await supabaseService.updateOrderStatus(orderId, newStatus);
+    if (updated) {
+      setOrders((prev) =>
+        prev.map((ord) =>
+          ord.id === orderId
+            ? { ...ord, status: newStatus, statusLabel: statusLabels[newStatus] || newStatus }
+            : ord
+        )
+      );
+      addToast(`تم تغيير حالة الطلب ${orderId} إلى: ${statusLabels[newStatus]}`, 'success');
+    } else {
+      addToast('تعذر تحديث حالة الطلب', 'error');
+    }
   };
 
-  // Settings update
-  const updateSettings = (newSettings) => {
-    setSettings((prev) => ({ ...prev, ...newSettings }));
-    supabaseService.updateSettings(newSettings);
-    addToast('تم حفظ إعدادات المتجر بنجاح', 'success');
+  // ----------------------------------------------------------------------------
+  // Settings
+  // ----------------------------------------------------------------------------
+  const updateSettings = async (newSettings) => {
+    const saved = await supabaseService.updateSettings(newSettings);
+    if (saved) {
+      setSettings((prev) => ({ ...prev, ...newSettings }));
+      addToast('تم حفظ إعدادات المتجر بنجاح', 'success');
+    } else {
+      addToast('تعذر حفظ الإعدادات', 'error');
+    }
+  };
+
+  // ----------------------------------------------------------------------------
+  // Customers (Admin)
+  // ----------------------------------------------------------------------------
+  const updateUserRole = async (userId, role) => {
+    const updated = await supabaseService.updateUserRole(userId, role);
+    if (updated) {
+      setProfiles((prev) => prev.map((p) => (p.id === userId ? { ...p, role } : p)));
+      addToast('تم تحديث صلاحية المستخدم بنجاح', 'success');
+    } else {
+      addToast('تعذر تحديث صلاحية المستخدم', 'error');
+    }
+  };
+
+  const deleteUser = async (userId) => {
+    const ok = await supabaseService.deleteUser(userId);
+    if (ok) {
+      setProfiles((prev) => prev.filter((profile) => profile.id !== userId));
+      setOrders((prev) => prev.filter((order) => order.userId !== userId));
+      addToast('تم حذف حساب العميل بنجاح', 'info');
+    } else {
+      addToast('تعذر حذف حساب العميل', 'error');
+    }
+    return ok;
   };
 
   return (
@@ -303,11 +361,11 @@ export const AdminDataProvider = ({ children }) => {
         addProduct,
         updateProduct,
         deleteProduct,
-        categories,
+        categories: categoriesWithCounts,
         addCategory,
         updateCategory,
         deleteCategory,
-        brands,
+        brands: brandsWithCounts,
         addBrand,
         updateBrand,
         deleteBrand,
@@ -318,8 +376,15 @@ export const AdminDataProvider = ({ children }) => {
         orders,
         createOrder,
         updateOrderStatus,
+        profiles,
+        updateUserRole,
+        deleteUser,
         settings,
-        updateSettings
+        updateSettings,
+        isConfigured: isSupabaseConfigured,
+        isLoaded,
+        isLoading,
+        refreshAll
       }}
     >
       {children}

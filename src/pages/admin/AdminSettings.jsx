@@ -21,7 +21,17 @@ export const AdminSettings = () => {
       ...formData,
       freeShippingMin: Number(formData.freeShippingMin),
       defaultDeliveryFee: Number(formData.defaultDeliveryFee),
-      taxRate: Number(formData.taxRate)
+      taxRate: Number(formData.taxRate),
+      whatsappGovernorates: (formData.whatsappGovernoratesText ?? (formData.whatsappGovernorates || []).join(','))
+        .split(/[،,]/)
+        .map((value) => value.trim())
+        .filter(Boolean),
+      socialLinks: {
+        ...(formData.socialLinks || {}),
+        facebook: formData.facebook || '',
+        instagram: formData.instagram || '',
+        tiktok: formData.tiktok || ''
+      }
     });
   };
 
@@ -101,6 +111,33 @@ export const AdminSettings = () => {
                 onChange={handleChange}
                 className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-brand-red"
               />
+            </div>
+
+            <div>
+              <label className="block font-bold text-gray-700 mb-1">البريد الإلكتروني</label>
+              <input type="email" name="email" value={formData.email || ''} onChange={handleChange} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-brand-red" />
+            </div>
+
+            <div>
+              <label className="block font-bold text-gray-700 mb-1">المحافظات المسموح لها بتأكيد واتساب</label>
+              <input
+                type="text"
+                name="whatsappGovernoratesText"
+                value={formData.whatsappGovernoratesText ?? (formData.whatsappGovernorates || []).join('، ')}
+                onChange={handleChange}
+                placeholder="بني سويف، القاهرة"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-brand-red"
+              />
+            </div>
+
+            <div>
+              <label className="block font-bold text-gray-700 mb-1">رابط فيسبوك</label>
+              <input type="url" name="facebook" value={formData.facebook || ''} onChange={handleChange} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-brand-red" />
+            </div>
+
+            <div>
+              <label className="block font-bold text-gray-700 mb-1">رابط إنستجرام</label>
+              <input type="url" name="instagram" value={formData.instagram || ''} onChange={handleChange} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-brand-red" />
             </div>
           </div>
         </div>

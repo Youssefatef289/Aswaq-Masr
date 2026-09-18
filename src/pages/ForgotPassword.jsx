@@ -1,19 +1,30 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, ArrowRight, CheckCircle2 } from 'lucide-react';
-import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 
 export const ForgotPassword = () => {
-  const { addToast } = useToast();
+  const { resetPassword } = useAuth();
   const [email, setEmail] = useState('');
+  const [error, setError] = useState('');
+  const [isSending, setIsSending] = useState(false);
   const [isSent, setIsSent] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (email) {
-      setIsSent(true);
-      addToast('تم إرسال رابط استعادة كلمة المرور لبريدك الإلكتروني', 'success');
+    setError('');
+    setIsSending(true);
+
+    const res = await resetPassword(email);
+    setIsSending(false);
+
+    if (!res?.success) {
+      setError(res?.error === 'Supabase غير مهيأ'
+        ? 'لم يتم إعداد Supabase بعد — أضف مفاتيح المشروع في ملف .env'
+        : (res?.error || 'تعذر إرسال رابط الاستعادة'));
+      return;
     }
+    setIsSent(true);
   };
 
   return (
@@ -43,6 +54,12 @@ export const ForgotPassword = () => {
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="p-3 bg-red-50 text-brand-red text-xs font-bold rounded-xl text-center">
+              {error}
+            </div>
+          )}
+
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1.5">
               البريد الإلكتروني
@@ -62,9 +79,10 @@ export const ForgotPassword = () => {
 
           <button
             type="submit"
-            className="w-full py-3 px-4 bg-brand-red hover:bg-brand-darkRed text-white rounded-xl text-xs sm:text-sm font-black flex items-center justify-center gap-2 shadow-md transition"
+            disabled={isSending}
+            className="w-full py-3 px-4 bg-brand-red hover:bg-brand-darkRed text-white rounded-xl text-xs sm:text-sm font-black flex items-center justify-center gap-2 shadow-md transition disabled:opacity-60"
           >
-            <span>إرسال رابط الاستعادة</span>
+            <span>{isSending ? 'جاري الإرسال...' : 'إرسال رابط الاستعادة'}</span>
           </button>
 
           <div className="text-center pt-2">
