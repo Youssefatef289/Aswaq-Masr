@@ -66,14 +66,14 @@ export const AuthProvider = ({ children }) => {
     return () => unsubscribe();
   }, [hydrateUserFromSession]);
 
-  const login = async (email, password) => {
+  const login = async (username, password) => {
     if (!isSupabaseConfigured) {
       addToast('لم يتم إعداد Supabase بعد — أضف مفاتيح المشروع في ملف .env', 'error');
       return { success: false, error: 'Supabase غير مهيأ' };
     }
 
-    if (!email || !password) {
-      addToast('يرجى إدخال البريد الإلكتروني وكلمة المرور', 'error');
+    if (!username || !password) {
+      addToast('يرجى إدخال اسم المستخدم وكلمة المرور', 'error');
       return { success: false, error: 'بيانات ناقصة' };
     }
 
@@ -81,7 +81,7 @@ export const AuthProvider = ({ children }) => {
     if (!result.success) {
       const message =
         String(result.error || '').toLowerCase().includes('invalid login')
-          ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة'
+          ? 'اسم المستخدم أو كلمة المرور غير صحيحة'
           : result.error || 'تعذر تسجيل الدخول';
       addToast(message, 'error');
       return { success: false, error: message };
@@ -98,9 +98,14 @@ export const AuthProvider = ({ children }) => {
       return { success: false, error: 'Supabase غير مهيأ' };
     }
 
-    if (!userData.email || !userData.password || !userData.name) {
+    if (!userData.username || !userData.password || !userData.name) {
       addToast('يرجى ملء جميع الحقول المطلوبة', 'error');
       return { success: false, error: 'بيانات ناقصة' };
+    }
+
+    if (!/^[a-zA-Z0-9_.-]{3,30}$/.test(userData.username)) {
+      addToast('اسم المستخدم يجب أن يكون من 3 إلى 30 حرفاً إنجليزياً أو أرقاماً', 'error');
+      return { success: false, error: 'اسم مستخدم غير صالح' };
     }
 
     if (userData.password.length < 8) {
@@ -109,10 +114,12 @@ export const AuthProvider = ({ children }) => {
     }
 
     const result = await supabaseService.signUp({
-      email: userData.email,
+      username: userData.username,
       password: userData.password,
       fullName: userData.name,
-      phone: userData.phone
+      phone: userData.phone,
+      governorate: userData.governorate,
+      city: userData.city
     });
 
     if (!result.success) {

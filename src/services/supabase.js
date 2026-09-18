@@ -143,6 +143,7 @@ export const normalizeProfile = (item) => {
     id: item.id,
     name: item.full_name || item.name || '',
     fullName: item.full_name || item.name || '',
+    username: item.username || '',
     email: item.email || '',
     phone: item.phone || '',
     avatar: item.avatar_url || item.avatar || '',
@@ -837,11 +838,17 @@ export const supabaseService = {
     }
   },
 
-  async signIn(email, password) {
+  async signIn(username, password) {
     if (!supabase) return { success: false, error: 'Supabase غير مهيأ' };
     try {
+      const { data: internalEmail, error: lookupError } = await supabase.rpc('get_auth_email_by_username', {
+        requested_username: (username || '').trim().toLowerCase()
+      });
+      if (lookupError) throw lookupError;
+      if (!internalEmail) return { success: false, error: 'اسم المستخدم أو كلمة المرور غير صحيحة' };
+
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: (email || '').trim().toLowerCase(),
+        email: internalEmail,
         password
       });
       if (error) throw error;
@@ -851,16 +858,21 @@ export const supabaseService = {
     }
   },
 
-  async signUp({ email, password, fullName, phone }) {
+  async signUp({ username, password, fullName, phone, governorate, city }) {
     if (!supabase) return { success: false, error: 'Supabase غير مهيأ' };
     try {
+      const normalizedUsername = (username || '').trim().toLowerCase();
+      const internalEmail = `${normalizedUsername}@users.aswaqmasr.local`;
       const { data, error } = await supabase.auth.signUp({
-        email: (email || '').trim().toLowerCase(),
+        email: internalEmail,
         password,
         options: {
           data: {
             full_name: fullName,
-            phone: phone || ''
+            username: normalizedUsername,
+            phone: phone || '',
+            governorate: governorate || '',
+            city: city || ''
           }
         }
       });

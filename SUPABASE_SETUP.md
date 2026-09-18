@@ -15,14 +15,16 @@ Never commit `.env`, service-role keys, or user passwords.
 
 Run [`supabase_schema.sql`](./supabase_schema.sql) in the Supabase SQL editor. It creates:
 
-- `profiles`: Auth profile data and `customer`/`manager`/`admin` roles.
+- `profiles`: Auth profile data, unique usernames, and `customer`/`manager`/`admin` roles.
 - `categories`, `brands`, `products`, `product_images`: public catalog data. Products include `subcategory` for type-based search.
 - `offers`, `coupons`: promotions.
 - `orders`, `order_items`: checkout data and order history.
 - `site_settings`: store contact details, delivery defaults, social links, and `whatsapp_governorates`.
 - `wishlists`: authenticated customer wishlists.
 
-The `handle_new_user` trigger creates a profile after Supabase Auth registration. RLS allows public reads for active catalog/settings rows, customer access to their own records, and admin/manager writes. The `delete_user_account` RPC deletes an Auth account and is restricted to admin/manager roles.
+The `handle_new_user` trigger creates a profile after Supabase Auth registration. The app generates an internal Auth email and users sign in with their unique username and password. RLS allows public reads for active catalog/settings rows, customer access to their own records, and admin/manager writes. The `delete_user_account` RPC deletes an Auth account and is restricted to admin/manager roles.
+
+After applying the schema, disable **Confirm email** in Supabase under **Authentication > Providers > Email** because registration does not ask the customer for an email address. Customers use their username and password to sign in.
 
 ## Admin account
 

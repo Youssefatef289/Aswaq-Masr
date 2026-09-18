@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, LogIn } from 'lucide-react';
+import { User, Lock, LogIn } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const Login = () => {
   const navigate = useNavigate();
   const { login, isSupabaseConfigured } = useAuth();
 
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
@@ -18,7 +18,7 @@ export const Login = () => {
     setError('');
     setIsSubmitting(true);
 
-    const res = await login(email, password);
+    const res = await login(username, password);
     setIsSubmitting(false);
 
     if (res?.success) {
@@ -56,18 +56,18 @@ export const Login = () => {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-xs font-bold text-gray-700 mb-1.5">
-            البريد الإلكتروني
+            اسم المستخدم
           </label>
           <div className="relative">
             <input
-              type="email"
+              type="text"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="name@example.com"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="username"
               className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 pr-10 pl-4 text-xs text-gray-900 focus:outline-none focus:border-brand-red focus:bg-white"
             />
-            <Mail className="w-4 h-4 text-gray-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
+            <User className="w-4 h-4 text-gray-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
           </div>
         </div>
 

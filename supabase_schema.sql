@@ -25,6 +25,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     full_name TEXT NOT NULL,
+    username TEXT UNIQUE NOT NULL,
     email TEXT UNIQUE NOT NULL,
     phone TEXT,
     avatar_url TEXT,
@@ -43,6 +44,7 @@ BEGIN
     INSERT INTO public.profiles (
         id,
         full_name,
+        username,
         email,
         phone,
         avatar_url,
@@ -51,6 +53,7 @@ BEGIN
     VALUES (
         NEW.id,
         COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)),
+        LOWER(COALESCE(NEW.raw_user_meta_data->>'username', split_part(NEW.email, '@', 1))),
         NEW.email,
         NEW.raw_user_meta_data->>'phone',
         COALESCE(NEW.raw_user_meta_data->>'avatar_url', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80'),
@@ -340,6 +343,26 @@ ALTER TABLE public.orders DROP CONSTRAINT IF EXISTS orders_order_status_check;
 ALTER TABLE public.orders ADD CONSTRAINT orders_order_status_check
     CHECK (order_status IN ('pending', 'confirmed', 'preparing', 'out-for-delivery', 'delivered', 'cancelled'));
 
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS username TEXT;
+UPDATE public.profiles
+SET username = LOWER(SPLIT_PART(email, '@', 1))
+WHERE username IS NULL;
+ALTER TABLE public.profiles ALTER COLUMN username SET NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS profiles_username_lower_idx ON public.profiles (LOWER(username));
+
+CREATE OR REPLACE FUNCTION public.get_auth_email_by_username(requested_username TEXT)
+RETURNS TEXT AS $$
+DECLARE
+    matched_email TEXT;
+BEGIN
+    SELECT email INTO matched_email
+    FROM public.profiles
+    WHERE LOWER(username) = LOWER(TRIM(requested_username))
+    LIMIT 1;
+    RETURN matched_email;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
 -- ==============================================================================
 -- 12. Row Level Security (RLS) Policies  —  SECURE: Admin writes ONLY via is_admin()
 -- ==============================================================================
@@ -611,6 +634,7 @@ GRANT INSERT ON public.orders, public.order_items, public.profiles, public.wishl
 
 GRANT UPDATE ON public.profiles, public.wishlists TO authenticated;
 GRANT DELETE ON public.wishlists TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_auth_email_by_username(TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.delete_user_account(UUID) TO authenticated;
 
 -- ==============================================================================

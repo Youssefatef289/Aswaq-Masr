@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Mail, Phone, UserPlus, CheckCircle2 } from 'lucide-react';
+import { User, Phone, UserPlus, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { egyptianGovernorates } from '../data/governorates';
 
@@ -10,7 +10,7 @@ export const Register = () => {
 
   const [formData, setFormData] = useState({
     name: '',
-    email: '',
+    username: '',
     phone: '',
     governorate: 'beni-suef',
     city: '',
@@ -38,7 +38,7 @@ export const Register = () => {
     setIsSubmitting(true);
     const res = await register({
       name: formData.name,
-      email: formData.email,
+      username: formData.username,
       phone: formData.phone,
       governorate: formData.governorate,
       city: formData.city,
@@ -86,8 +86,7 @@ export const Register = () => {
           </div>
           <h3 className="text-sm font-black text-gray-900">تم إنشاء الحساب بنجاح!</h3>
           <p className="text-xs text-gray-600 leading-relaxed">
-            أرسلنا لك رابط تأكيد على بريدك الإلكتروني <strong>{formData.email}</strong>.
-            يرجى تأكيد البريد ثم تسجيل الدخول.
+            تم إنشاء حسابك. يمكنك الآن تسجيل الدخول باستخدام اسم المستخدم وكلمة المرور.
           </p>
           <Link
             to="/login"
@@ -117,19 +116,21 @@ export const Register = () => {
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-gray-700 mb-1">البريد الإلكتروني</label>
+          <label className="block text-xs font-bold text-gray-700 mb-1">اسم المستخدم</label>
           <div className="relative">
             <input
-              type="email"
+              type="text"
               required
-              name="email"
-              value={formData.email}
+              name="username"
+              value={formData.username}
               onChange={handleChange}
-              placeholder="name@example.com"
+              placeholder="username"
+              pattern="[A-Za-z0-9_.-]{3,30}"
               className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 pr-10 pl-4 text-xs text-gray-900 focus:outline-none focus:border-brand-red focus:bg-white"
             />
-            <Mail className="w-4 h-4 text-gray-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
+            <User className="w-4 h-4 text-gray-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
           </div>
+          <span className="text-[10px] text-gray-400 block mt-0.5">3 إلى 30 حرفاً إنجليزياً أو أرقاماً</span>
         </div>
 
         <div>
