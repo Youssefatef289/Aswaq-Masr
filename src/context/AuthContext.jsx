@@ -77,7 +77,7 @@ export const AuthProvider = ({ children }) => {
       return { success: false, error: 'بيانات ناقصة' };
     }
 
-    const result = await supabaseService.signIn(email, password);
+    const result = await supabaseService.signIn(username, password);
     if (!result.success) {
       const message =
         String(result.error || '').toLowerCase().includes('invalid login')
