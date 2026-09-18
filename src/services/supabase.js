@@ -907,7 +907,10 @@ export const supabaseService = {
 
   onAuthStateChange(callback) {
     if (!supabase) return { unsubscribe: () => {} };
-    return supabase.auth.onAuthStateChange(callback);
+    const { data } = supabase.auth.onAuthStateChange(callback);
+    return {
+      unsubscribe: () => data?.subscription?.unsubscribe?.()
+    };
   },
 
   // ----------------------------------------------------------------------------

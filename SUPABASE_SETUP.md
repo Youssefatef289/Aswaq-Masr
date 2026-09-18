@@ -15,6 +15,8 @@ Never commit `.env`, service-role keys, or user passwords.
 
 Run [`supabase_schema.sql`](./supabase_schema.sql) in the Supabase SQL editor. It creates:
 
+> If the SQL editor reports missing columns such as `brands.name_ar`, `offers.sort_order`, or `site_settings.id`, the project contains an older incompatible schema. In that case, use a new empty Supabase project or remove the old application tables first, then run the complete file from top to bottom. Do not run only the final `ALTER TABLE` lines; the foreign-key relationships are required for the nested product and order queries.
+
 - `profiles`: Auth profile data, unique usernames, and `customer`/`manager`/`admin` roles.
 - `categories`, `brands`, `products`, `product_images`: public catalog data. Products include `subcategory` for type-based search.
 - `offers`, `coupons`: promotions.
